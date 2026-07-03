@@ -1,0 +1,20 @@
+{
+  "name": "perture-private",
+  "interface": {
+    "displayName": "Perture Private"
+  },
+  "plugins": [
+    {
+      "name": "perture",
+      "source": {
+        "source": "local",
+        "path": "./plugins/perture"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "name": "perture",
+  "version": "0.1.0",
+  "description": "Thin Codex connector for Perture brand context and performance memory.",
+  "author": {
+    "name": "Perture"
+  },
+  "homepage": "https://app.perture.co/",
+  "keywords": [
+    "brand",
+    "performance",
+    "memory",
+    "interfaces"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Perture",
+    "shortDescription": "Use Perture brand context from app.perture.co.",
+    "longDescription": "Perture connects Codex to remote brand context, project memory, performance memory, and validation tools served by app.perture.co. The plugin contains no proprietary rules or local implementation logic.",
+    "developerName": "Perture",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://app.perture.co/",
+    "brandColor": "#111111",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "logoDark": "./assets/logo-dark.svg",
+    "defaultPrompt": [
+      "Use Perture brand context.",
+      "Check Perture performance memory.",
+      "Validate this output with Perture."
+    ]
+  }
+}
