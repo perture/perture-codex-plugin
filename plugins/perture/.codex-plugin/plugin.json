@@ -1,36 +1,41 @@
 {
   "name": "perture",
-  "version": "0.1.1",
-  "description": "Thin Codex connector for Perture brand context and performance memory.",
+  "version": "0.2.0+codex.20260812173024",
+  "description": "Thin Codex connector for Perture brand context, frontend contracts, and validation.",
   "author": {
-    "name": "Perture"
+    "name": "Perture",
+    "email": "supportperture@gmail.com",
+    "url": "https://app.perture.co/"
   },
   "homepage": "https://app.perture.co/",
   "keywords": [
     "brand",
-    "performance",
     "memory",
+    "validation",
     "interfaces"
   ],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Perture",
-    "shortDescription": "Use Perture brand context from app.perture.co.",
-    "longDescription": "Perture connects Codex to remote brand context, project memory, performance memory, and validation tools served by app.perture.co. The plugin contains no proprietary rules or local implementation logic.",
+    "shortDescription": "Use Perture brand context.",
+    "longDescription": "Perture connects Codex to remote brand context, versioned frontend contracts, deterministic check orchestration, project memory, Works submission, Canva asset preparation, and validation tools served by app.perture.co. The plugin contains no proprietary rules or local implementation logic.",
     "developerName": "Perture",
     "category": "Productivity",
     "capabilities": [
       "Interactive"
     ],
     "websiteURL": "https://app.perture.co/",
+    "privacyPolicyURL": "https://app.perture.co/privacy",
+    "termsOfServiceURL": "https://app.perture.co/terms",
     "brandColor": "#111111",
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/logo.svg",
     "logoDark": "./assets/logo-dark.svg",
     "defaultPrompt": [
       "Use Perture brand context.",
-      "Check Perture performance memory.",
+      "Prepare and verify frontend changes with Perture.",
+      "Review Perture project memory.",
       "Validate this output with Perture."
     ]
   }
