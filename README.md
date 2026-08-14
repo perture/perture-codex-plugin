@@ -1,55 +1,23 @@
-# Perture Codex Plugin Marketplace
+# Perture for Codex
 
-Private Codex marketplace for the Perture thin-client plugin.
+Official public source for the Perture thin connection package for Codex.
 
-This package is intentionally small. It does not contain Perture prompts, scoring,
-brand-rule logic, validation logic, or local generation code. The plugin only
-registers a remote Perture MCP server and short usage guidance. All privileged
-work runs on `https://app.perture.co`.
+The package registers Perture's authenticated remote MCP server and a minimal
+user-approved-work reminder. It contains no credentials, customer data,
+business rules, scoring, prompts, validators, request clients, or proprietary
+implementation logic.
 
-## Structure
+## Install for testing
+
+Clone this repository, then add the local marketplace from its parent folder:
 
 ```text
-.agents/plugins/marketplace.json
-plugins/perture/
-  .codex-plugin/plugin.json
-  .mcp.json
-  assets/
-  skills/perture/SKILL.md
-  README.md
-```
-
-## Local Test
-
-From the parent directory:
-
-```bash
 codex plugin marketplace add ./perture-codex-plugin
 ```
 
-Then open Codex, go to **Plugins**, choose **Perture Private**, and install
-**Perture**. Start a new thread after installing.
+Open the Plugins directory, choose the `Perture` source, install `Perture`, and
+complete the browser sign-in when Codex requests authorization.
 
-## Private GitHub Distribution
-
-After this folder is pushed to a private GitHub repository under the official
-Perture organization, beta users can install the marketplace source:
-
-```bash
-codex plugin marketplace add git@github.com:perture/perture-codex-plugin.git --ref v0.1.0
-```
-
-They can then install **Perture** from the Codex plugin directory.
-
-## Authentication
-
-The plugin points Codex at `https://app.perture.co/mcp`. If the Codex MCP
-connection handles OAuth, users should connect with their Perture account during
-plugin setup. For local fallback testing only, set:
-
-```bash
-PERTURE_ACCESS_TOKEN=pto_...
-```
-
-Do not put tokens, API keys, brand rules, prompts, or customer data in this
-repository.
+The public Plugins Directory listing is submitted separately through OpenAI's
+review portal. All protected behavior remains on Perture infrastructure and is
+authorized on every request.

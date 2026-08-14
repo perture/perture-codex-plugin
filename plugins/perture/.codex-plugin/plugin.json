@@ -1,37 +1,38 @@
 {
   "name": "perture",
-  "version": "0.1.1",
-  "description": "Thin Codex connector for Perture brand context and performance memory.",
+  "version": "0.3.0",
+  "description": "Connect Codex to Perture through authenticated remote tools.",
   "author": {
-    "name": "Perture"
+    "name": "Perture",
+    "email": "supportperture@gmail.com",
+    "url": "https://app.perture.co/"
   },
   "homepage": "https://app.perture.co/",
+  "repository": "https://github.com/perture/perture-codex-plugin",
+  "license": "UNLICENSED",
   "keywords": [
     "brand",
-    "performance",
-    "memory",
     "interfaces"
   ],
-  "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Perture",
-    "shortDescription": "Use Perture brand context from app.perture.co.",
-    "longDescription": "Perture connects Codex to remote brand context, project memory, performance memory, and validation tools served by app.perture.co. The plugin contains no proprietary rules or local implementation logic.",
+    "shortDescription": "Connect your Perture workspace.",
+    "longDescription": "Use authenticated Perture capabilities from Codex. Protected logic and project data remain on Perture infrastructure.",
     "developerName": "Perture",
     "category": "Productivity",
     "capabilities": [
       "Interactive"
     ],
     "websiteURL": "https://app.perture.co/",
+    "privacyPolicyURL": "https://app.perture.co/privacy",
+    "termsOfServiceURL": "https://app.perture.co/terms",
     "brandColor": "#111111",
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/logo.svg",
     "logoDark": "./assets/logo-dark.svg",
     "defaultPrompt": [
-      "Use Perture brand context.",
-      "Check Perture performance memory.",
-      "Validate this output with Perture."
+      "Use Perture for this project."
     ]
   }
 }

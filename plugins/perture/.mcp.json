@@ -2,10 +2,7 @@
   "mcpServers": {
     "perture": {
       "type": "http",
-      "url": "https://app.perture.co/mcp",
-      "headers": {
-        "Authorization": "Bearer ${PERTURE_ACCESS_TOKEN}"
-      }
+      "url": "https://app.perture.co/mcp"
     }
   }
 }

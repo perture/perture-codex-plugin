@@ -1,7 +1,7 @@
 {
-  "name": "perture-private",
+  "name": "perture",
   "interface": {
-    "displayName": "Perture Private"
+    "displayName": "Perture"
   },
   "plugins": [
     {

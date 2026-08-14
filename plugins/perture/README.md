@@ -1,37 +1,12 @@
-# Perture Codex Plugin
+# Perture
 
-This is the Perture thin-client plugin for Codex.
+Official connection package for Perture.
 
-The plugin does not include Perture know-how. It registers the remote Perture MCP
-server and gives Codex a short workflow instruction. Brand rules, memory,
-performance logic, validation, permissions, and entitlements stay on
-`https://app.perture.co`.
+The package contains only host manifests, public brand assets, a remote-service
+locator, and a minimal lifecycle hint. Authentication is completed and stored
+by the coding host. No credentials, customer data, business rules, scoring,
+prompts, validators, request clients, or implementation logic are bundled.
 
-## What It Contains
-
-- Codex manifest in `.codex-plugin/plugin.json`.
-- Remote MCP config in `.mcp.json`.
-- Minimal skill in `skills/perture/SKILL.md`.
-- Public Perture icon/logo assets.
-
-## What It Does Not Contain
-
-- Proprietary prompts.
-- Brand scoring logic.
-- Client-side rule engine.
-- Client-side asset or rules generation code.
-- API keys or bearer tokens.
-- Customer project data.
-
-## Runtime Model
-
-```text
-Codex
-  -> Perture plugin manifest
-  -> Perture remote MCP server
-  -> https://app.perture.co
-  -> server-side auth, permissions, memory, and validation
-```
-
-Treat the plugin as visible client code. The Perture backend is the security
-authority for every request.
+All protected behavior is executed on Perture infrastructure and authorized on
+every request. The source is licensed only for installing and using the
+official Perture connection; see `LICENSE`.
