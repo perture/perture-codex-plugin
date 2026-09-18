@@ -1,7 +1,7 @@
 {
   "name": "perture",
-  "version": "0.3.0",
-  "description": "Connect Codex to Perture through authenticated remote tools.",
+  "version": "0.8.5",
+  "description": "Build, review and safely fix brand-aware frontend interfaces with Perture.",
   "author": {
     "name": "Perture",
     "email": "supportperture@gmail.com",
@@ -14,11 +14,12 @@
     "brand",
     "interfaces"
   ],
+  "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Perture",
-    "shortDescription": "Connect your Perture workspace.",
-    "longDescription": "Use authenticated Perture capabilities from Codex. Protected logic and project data remain on Perture infrastructure.",
+    "shortDescription": "Keep AI-built frontend UI on brand.",
+    "longDescription": "Use Perture's connected brand contract with local repository intelligence and source checks. Private repository source stays local; authentication and brand authorization remain on Perture infrastructure.",
     "developerName": "Perture",
     "category": "Productivity",
     "capabilities": [

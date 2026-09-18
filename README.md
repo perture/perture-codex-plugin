@@ -1,11 +1,16 @@
 # Perture for Codex
 
-Official public source for the Perture thin connection package for Codex.
+Official public source for the Perture Design Agent package for Codex.
 
-The package registers Perture's authenticated remote MCP server and a minimal
-user-approved-work reminder. It contains no credentials, customer data,
-business rules, scoring, prompts, validators, request clients, or proprietary
-implementation logic.
+The package combines Perture's authenticated remote MCP server with a local
+Build/Review/Fix skill, repository inspection, deterministic source checks and
+rendered desktop/mobile validation. Version `0.8.5` requires Frontend Contract
+protocol `1.3` and fails closed when an approved Interface System component is
+missing, unavailable or bypassed by a hand-built control.
+
+The package contains no credentials, customer data or private brand rules.
+Repository source remains local; protected brand context and authorization
+remain on Perture infrastructure.
 
 ## Install for testing
 

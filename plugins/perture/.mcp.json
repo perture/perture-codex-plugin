@@ -2,7 +2,8 @@
   "mcpServers": {
     "perture": {
       "type": "http",
-      "url": "https://app.perture.co/mcp"
+      "url": "https://app.perture.co/mcp",
+      "oauth_resource": "https://app.perture.co/mcp"
     }
   }
 }
