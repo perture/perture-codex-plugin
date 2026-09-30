@@ -49,11 +49,17 @@ the bundled validator.
    Never interpret `components: []` from an older contract, an archived
    storage reference, or a missing gate as evidence that the brand has no
    Interface System. When eligible components exist, also confirm that
-   `get_interface_component_implementation` and
+   `resolve_interface_component`, `get_interface_component_implementation` and
    `validate_interface_system_usage` are callable before changing source.
    When `interface_system_gate.required` is true, this is a hard build gate:
    map the requested UI to the eligible approved components before editing,
-   use their verified implementation targets, and do not recreate parallel
+   resolve each mapped dotted intent with its actual background/surface and
+   framework, and stop on `unmapped`, `needs_context`, `no_match` or `ambiguous`.
+   If `selection_coverage` is `partial` or `not_configured`, disclose that
+   unmapped variants cannot be chosen automatically or certified by intent.
+   Never choose a logo or button by filename or visual guess; for logos provide
+   actual background and available space to `get_brand_reference_for_output`.
+   Use their verified implementation targets, and do not recreate parallel
    controls or containers. Treat `applicability_requirements` as semantic
    coverage, not a menu: if the output renders a button, input, navigation,
    overlay or feedback role that has approved component IDs, every instance of
@@ -65,7 +71,9 @@ the bundled validator.
    import path, export name, component ID or usage manifest as implementation
    evidence. If the artifact is unavailable, stop and report the Interface
    System gap instead of approximating the component. After implementation, create one
-   `interface_usage_manifest` entry per used instance, call
+   `interface_usage_manifest` entry per used instance. Include that instance's
+   exact intent, context and framework whenever Brand Page selection mappings
+   exist. Then call
    `validate_interface_system_usage`, and keep its exact successful JSON result
    in a temporary local file for the bundled source check. Zero usages, a stale
    receipt, or a component declared without its verified import and rendered
@@ -182,6 +190,15 @@ and report deterministic code-level status as `not_verified`.
   returned by `get_interface_component_implementation` count as its official
   implementation; wrappers may compose those exports but must not replace or
   restyle their internal visual contract.
+- Treat returned Figma artifacts as immutable outlined SVG. Use only captured
+  variants, states and component properties that resolve to an imported SVG;
+  an unknown value is unavailable and must not silently select another
+  variant. `label` is an accessibility label, and `className`/`style` may
+  customize the outer wrapper. They do not replace visible text or restyle
+  paths inside the SVG. Visible copy or internal visual changes require a new
+  Figma export. Never redraw text in HTML/CSS or add a font fallback. If a
+  variant lacks self-contained SVG or contains live `<text>`, stop and report
+  that source as unavailable.
 - Do not claim screenshot, rendered, responsive or runtime verification from
   source-only checks.
 - Do not claim functionality passed unless relevant project checks actually ran

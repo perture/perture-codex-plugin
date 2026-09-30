@@ -156,3 +156,50 @@ authorize source upload.
 If the script, Node.js or files are unavailable, return `not_verified`. Agent
 judgment may still provide labeled contextual guidance, but it cannot replace a
 required deterministic result.
+
+## Source-bound component evidence
+
+The required evidence capability is `interface-evidence.v1`; the signed receipt
+is `isv3`. Old metadata-only receipts cannot approve a finished UI.
+
+Each official JSX instance needs a unique literal `data-perture-instance-id`.
+Use explicit literal variants, states and mapped properties. The TypeScript AST
+checks the resolved import, follows local source dependencies, compares the full
+instance inventory with the manifest, and rejects parallel controls, forged
+markers, opaque HTML, shadowed imports and unsupported dynamic props. Unsupported
+cases stay `not_verified`; do not weaken the checker to obtain a pass.
+
+First validate the usage metadata, then run the combined source/rendered check.
+Sign its `validation_manifest_for_binding` with `validate_interface_system_usage`
+and rerun using the exact signed response. Changing source, route, rendering,
+inventory or commit invalidates approval. The emitted proposal is not a pass.
+Rendered evidence includes a full-page pixel hash as well as DOM/metrics.
+Only sanitized hashes/labels go to MCP; source, DOM and pixels remain local.
+
+For merge/deploy, build once, serve that exact production build on loopback, and
+add `--build-dir <repository-relative-build-directory>` to the checker. Do not
+rebuild after signing: ship the same verified artifact. Dev-server evidence can
+support review but never authorizes shipping.
+
+Typed spacing, radii and authored automatic textual checks are measured in both
+viewports. Unmeasurable checks block approval. Unstructured prose remains manual
+review and must never be treated as an inferred automatic policy.
+
+## Required deploy step
+
+In trusted application CI, install the separate CI runner and run
+`tools/perture-deploy-guard.cjs` before the deploy job,
+using `--cwd`, `--contract`, `--files`, `--url`, `--build-dir`, `--object-report`,
+`--interface-system-validation`, `--repository` and the actual target `--branch`.
+Keep contract/results outside source control and ignored. Supply `GITHUB_TOKEN`
+only through CI secrets, never through the plugin. This runner is intentionally
+outside the public plugin, which performs no direct network/credential work.
+The guard reruns checks, requires a clean committed
+source, compares the exact build, and reads GitHub's current required protection
+and successful Perture status for that commit. Nonzero exit means no deployment.
+
+Installing this script does not make a provider's deploy pipeline mandatory.
+Configure the deploy job to depend on it and prevent alternate bypass paths.
+GitHub protection must be available for the repository plan; missing protection,
+permissions or API failures block readiness. Never make a private repository
+public or upgrade its account without explicit user authorization.

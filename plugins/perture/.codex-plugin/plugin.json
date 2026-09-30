@@ -1,6 +1,6 @@
 {
   "name": "perture",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "Build, review and safely fix brand-aware frontend interfaces with Perture.",
   "author": {
     "name": "Perture",

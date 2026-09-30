@@ -2,6 +2,29 @@
 
 Official Design Agent connection package for Perture.
 
+## Install and update
+
+Codex: run `codex plugin marketplace add perture/perture-codex-plugin`, open
+the plugin browser, choose the Perture marketplace and install Perture. Complete
+the account authorization and start a new chat. Refresh the marketplace and
+update the installed package in the plugin browser when a release is available.
+
+Claude Code: run `/plugin marketplace add perture/perture-claude-code`, open
+`/plugin`, and install Perture from that marketplace. Authorize the account and
+reload plugins or start a new session. Use the Installed tab to update it.
+
+Version 0.8.6 requires the source-bound
+`interface-evidence.v1` runtime and signed `isv3` validation receipt for
+Interface System approval. Release this package together with a compatible
+backend; publishing the plugin alone cannot upgrade the remote service.
+Do not claim that a local package version is already published or loaded in
+an existing host session. Opening installation instructions does not authorize
+or create an account connection.
+
+Installation references:
+https://developers.openai.com/plugins/build/plugins
+https://code.claude.com/docs/en/discover-plugins
+
 The package combines a public Build/Review/Fix workflow skill, local read-only
 repository inspection and source checks, host manifests, public brand assets,
 and the remote Perture MCP locator.

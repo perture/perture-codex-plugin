@@ -21,7 +21,13 @@ Use this mode only for a user-authorized frontend implementation or change.
    Interface System components that implement the requested controls and
    structure. Cover every semantic role listed in
    `applicability_requirements`; an approved component from another role does
-   not count. Use their verified implementation targets; do not substitute a
+   not count. For each explicit Brand Page intent mapping, call
+   `resolve_interface_component` with actual background, surface and framework.
+   Use only its exact selected component, variant and target; unresolved or
+   ambiguous results require Brand Page authoring rather than a substitute.
+   Select the official logo with actual background and available space;
+   unresolved logo selection is not permission to infer from a file name.
+   Use their verified implementation targets; do not substitute a
    newly styled native element or parallel component. For every selected Figma
    component, call `get_interface_component_implementation`, add every returned
    path to the authorized file scope and write the returned contents exactly.
@@ -58,7 +64,11 @@ an unresolved choice would materially change the result.
 Read `frontend_contract.agent_behavior` before starting this section.
 
 The Interface System gate is mandatory even when automatic review is disabled.
-After implementation, build the complete `interface_usage_manifest`, call
+After implementation, build the complete `interface_usage_manifest`. Record
+the exact intent, context and framework for every mapped instance;
+validation rejects a semantically wrong component or variant even if its
+import is technically valid. The signed receipt is bound to this full manifest.
+Then call
 `validate_interface_system_usage`, save the exact successful result to a
 temporary file, and pass it to the bundled validator with
 `--interface-system-validation`. Remove that temporary file after the check.

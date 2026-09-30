@@ -1,0 +1,19 @@
+{
+  "name": "perture",
+  "version": "0.8.6",
+  "description": "Use Perture brand context and local source checks from Claude Code.",
+  "author": {
+    "name": "Perture",
+    "email": "supportperture@gmail.com",
+    "url": "https://app.perture.co/"
+  },
+  "homepage": "https://app.perture.co/",
+  "repository": "https://github.com/perture/perture-claude-code",
+  "license": "UNLICENSED",
+  "keywords": [
+    "brand",
+    "interfaces"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

@@ -7,6 +7,9 @@ const { checkSources, discoverFiles, loadSources } = require("./frontend-checker
 const { applyRepairSources, buildRepairReport } = require("./frontend-fixer");
 const { inspectRepository } = require("./repository-inspector");
 const { runRenderedCheck } = require("./rendered-checker");
+const { inspectInterfaceSources, compareInterfaceInventory, loadInterfaceSourceClosure, sha256 } = require("./interface-provenance");
+const { hashBuildOutput } = require("./build-evidence");
+const { execFileSync } = require("node:child_process");
 
 const MAX_CONTRACT_BYTES = 5 * 1024 * 1024;
 const MAX_INTERFACE_VALIDATION_BYTES = 1024 * 1024;
@@ -63,6 +66,7 @@ function assertContractCompatibility(contractInput) {
   ) {
     throw new Error("The Perture runtime compatibility handshake is missing or stale. Reconnect Perture before editing.");
   }
+  if (compatibility.interface_evidence_protocol !== "interface-evidence.v1") throw new Error("The component evidence protocol is missing or stale. Refresh the contract before claiming verification.");
   const enforcement = contract.generation_enforcement;
   const eligibleIds = enforcement?.required_manifest?.eligible_component_ids;
   if (
@@ -156,6 +160,8 @@ function verificationReportFor(report) {
       device_scale_factor: report.rendered.device_scale_factor,
       viewports_checked: report.rendered.viewports_checked,
       categories_evaluated: report.rendered.categories_evaluated,
+      evidence_hash: report.rendered.evidence_hash,
+      route: report.rendered.route,
       summary: report.rendered.summary
     } : null,
     findings: report.findings.map((finding) => ({
@@ -198,18 +204,6 @@ function loadInterfaceSystemValidation(args) {
   return parsed?.structuredContent || parsed;
 }
 
-function escapeRegExp(value) {
-  return String(value || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function sourceUsesImplementationTarget(sources, target) {
-  const importPath = String(target?.import_path || target?.importPath || "").trim();
-  const exportName = String(target?.export_name || target?.exportName || "").trim();
-  if (!importPath || !exportName) return false;
-  const usagePattern = new RegExp(`(?:<\\s*${escapeRegExp(exportName)}(?=[\\s/>])|\\b${escapeRegExp(exportName)}\\s*\\()`);
-  return sources.some((item) => String(item?.source || "").includes(importPath) && usagePattern.test(String(item?.source || "")));
-}
-
 function normalizedSourcePath(value) {
   return String(value || "").replace(/\\/g, "/").replace(/^\.\//, "");
 }
@@ -217,45 +211,13 @@ function normalizedSourcePath(value) {
 function sourceMatchesImmutableArtifact(sources, target) {
   const artifact = target?.artifact;
   const files = Array.isArray(artifact?.files) ? artifact.files : [];
-  if (artifact?.kind !== "perture-figma-svg-react" || artifact?.version !== "1" || !/^[a-f0-9]{64}$/.test(String(artifact?.hash || "")) || !files.length) return false;
+  if (artifact?.kind !== "perture-figma-svg-react" || artifact?.version !== "2" || artifact?.source_fidelity !== "figma-outlined-svg" || !/^[a-f0-9]{64}$/.test(String(artifact?.source_hash || "")) || !Number.isInteger(artifact?.source_variant_count) || artifact.source_variant_count < 1 || !/^[a-f0-9]{64}$/.test(String(artifact?.hash || "")) || !files.length) return false;
   const sourceByPath = new Map(sources.map((item) => [normalizedSourcePath(item?.file), String(item?.source || "")]));
   return files.every((file) => {
     const expected = String(file?.sha256 || "");
     const source = sourceByPath.get(normalizedSourcePath(file?.path));
     return source !== undefined && /^[a-f0-9]{64}$/.test(expected) && crypto.createHash("sha256").update(source, "utf8").digest("hex") === expected;
   });
-}
-
-function sourceRoleBypasses(contract, sources) {
-  const roles = contract?.generation_enforcement?.applicability?.roles || [];
-  const components = new Map((contract?.components || []).map((component) => [component?.id, component]));
-  const officialFiles = new Set();
-  for (const component of components.values()) {
-    for (const target of component?.implementation?.targets || []) {
-      const sourceFile = normalizedSourcePath(target?.source_file || target?.sourceFile);
-      if (sourceFile) officialFiles.add(sourceFile);
-      for (const file of target?.artifact?.files || []) {
-        const artifactFile = normalizedSourcePath(file?.path);
-        if (artifactFile) officialFiles.add(artifactFile);
-      }
-    }
-  }
-  const bypasses = [];
-  for (const role of roles) {
-    const nativeElements = Array.isArray(role?.source_native_elements) ? role.source_native_elements : [];
-    if (!nativeElements.length || !Array.isArray(role?.component_ids) || !role.component_ids.length) continue;
-    const patterns = nativeElements.map((element) => ({
-      element,
-      pattern: new RegExp(`<\\s*${escapeRegExp(element)}(?=[\\s/>])`)
-    }));
-    for (const item of sources) {
-      if (officialFiles.has(normalizedSourcePath(item?.file))) continue;
-      const source = String(item?.source || "");
-      const matched = patterns.filter(({ pattern }) => pattern.test(source)).map(({ element }) => element);
-      if (matched.length) bypasses.push({ file: normalizedSourcePath(item?.file), role: role.role, elements: matched, componentIds: role.component_ids });
-    }
-  }
-  return bypasses;
 }
 
 function interfaceSystemFinding(ruleId, message, suggestion) {
@@ -275,18 +237,22 @@ function interfaceSystemFinding(ruleId, message, suggestion) {
   };
 }
 
-function attachInterfaceSystemCoverage(report, contractInput, sources, validation) {
+function attachInterfaceSystemCoverage(report, contractInput, sources, validation, options = {}) {
   const contract = contractInput?.frontend_contract || contractInput;
   const eligibleIds = contract?.generation_enforcement?.required_manifest?.eligible_component_ids || [];
   if (!eligibleIds.length) return report;
   const findings = [...report.findings];
   const validatedManifest = validation?.validated_manifest;
+  const manifestHash = validatedManifest
+    ? crypto.createHash("sha256").update(JSON.stringify(validatedManifest)).digest("hex")
+    : "";
   const usages = Array.isArray(validatedManifest?.usages) ? validatedManifest.usages : [];
   const componentIds = [...new Set((validation?.component_ids || usages.map((usage) => usage?.componentId)).filter(Boolean))].sort();
   const receiptValidShape = validation?.valid === true &&
     (validation?.status === "valid" || validation?.status === "corrected") &&
     validation?.contract_version === contract.contract_version &&
     validation?.interface_system_hash === contract.generation_enforcement.interface_system_hash &&
+    manifestHash.length === 64 &&
     typeof validation?.validation_receipt === "string" && validation.validation_receipt.length > 0 &&
     validation?.instances_validated === usages.length && usages.length > 0;
   if (!receiptValidShape) {
@@ -297,6 +263,17 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
     ));
   }
   const components = new Map((contract?.components || []).map((component) => [component?.id, component]));
+  const inventory = inspectInterfaceSources(contract, sources, options.cwd);
+  const inventoryErrors = compareInterfaceInventory(inventory, usages);
+  for (const renderedInstances of report.coverage?.interface_system?.rendered_instance_sets || []) {
+    const renderedIds = new Set();
+    for (const instance of renderedInstances) {
+      const sourceInstance = inventory.instances.find((source) => source.instanceId === instance.instanceId);
+      if (!instance.instanceId || renderedIds.has(instance.instanceId) || !sourceInstance || sourceInstance.componentId !== instance.componentId || sourceInstance.implementationTargetId !== instance.implementationTargetId) inventoryErrors.push("A rendered instance has no unique matching official AST instance.");
+      renderedIds.add(instance.instanceId);
+    }
+    for (const sourceInstance of inventory.instances) if (!renderedIds.has(sourceInstance.instanceId)) inventoryErrors.push(`Source instance '${sourceInstance.instanceId}' was not rendered in every required viewport.`);
+  }
   const sourceComponentIds = [];
   const artifactMismatchIds = [];
   for (const usage of usages) {
@@ -304,13 +281,20 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
     const targets = component?.implementation?.targets || [];
     const target = targets.find((item) => item?.id === usage?.implementationTargetId && item?.status === "verified");
     const artifactMatches = component?.source !== "figma" || sourceMatchesImmutableArtifact(sources, target);
-    if (target && artifactMatches && sourceUsesImplementationTarget(sources, target)) sourceComponentIds.push(usage.componentId);
+    if (target && artifactMatches && inventory.instances.some((instance) => instance.instanceId === usage.instanceId && instance.componentId === usage.componentId && instance.implementationTargetId === usage.implementationTargetId)) sourceComponentIds.push(usage.componentId);
     else if (target && component?.source === "figma" && !artifactMatches) artifactMismatchIds.push(usage.componentId);
   }
   const detectedIds = [...new Set(sourceComponentIds)].sort();
   const missingIds = componentIds.filter((id) => !detectedIds.includes(id));
-  const roleBypasses = sourceRoleBypasses(contract, sources);
-  const sourceVerified = receiptValidShape && componentIds.length > 0 && missingIds.length === 0 && roleBypasses.length === 0;
+  const roleBypasses = inventory.bypasses;
+  const sourceVerified = receiptValidShape && componentIds.length > 0 && missingIds.length === 0 && roleBypasses.length === 0 && inventoryErrors.length === 0;
+  if (inventoryErrors.length) findings.push(interfaceSystemFinding("frontend.component.interface_system_inventory_mismatch", inventoryErrors.join(" "), "Use a unique literal data-perture-instance-id on each official JSX instance; include each instance in the manifest. Unsupported dynamic code remains not_verified."));
+  const currentBinding = report.rendered?.passed === true && report.rendered?.evidence_hash && inventory.sourceHash ? {
+    version: "interface-evidence.v1", source_hash: inventory.sourceHash, inventory_hash: inventory.inventoryHash,
+    rendered_hash: report.rendered.evidence_hash, route: report.rendered.route, commit_sha: options.commitSha || null, build_hash: options.buildHash || null
+  } : null;
+  const bindingMatches = Boolean(currentBinding && validatedManifest?.binding && Object.keys(currentBinding).every((key) => currentBinding[key] === validatedManifest.binding[key]));
+  if (!bindingMatches) findings.push(interfaceSystemFinding("frontend.component.interface_system_evidence_unbound", "The receipt is not bound to the current source, AST inventory, route, rendered output and commit.", "Validate validation_manifest_for_binding with validate_interface_system_usage, then rerun this check with the newly signed result. Do not reuse a receipt after changing code."));
   if (receiptValidShape && missingIds.length) {
     if (artifactMismatchIds.length) {
       findings.push(interfaceSystemFinding(
@@ -340,13 +324,19 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
   else unverified.add("interface_system_source_usage");
   return {
     ...report,
-    passed: report.passed && sourceVerified && errors === 0,
+    passed: report.passed && sourceVerified && bindingMatches && errors === 0,
+    validation_manifest_for_binding: currentBinding ? { ...validatedManifest, binding: currentBinding } : null,
     summary: { errors, warnings, suggestions, findings: findings.length },
     coverage: {
       ...report.coverage,
       interface_system: {
         component_ids: componentIds,
         hash: validation?.interface_system_hash || contract.generation_enforcement.interface_system_hash,
+        manifest_hash: manifestHash,
+        binding: currentBinding,
+        evidence_hash: currentBinding ? sha256(JSON.stringify(currentBinding)) : "",
+        binding_status: bindingMatches ? "verified" : "not_verified",
+        source_inventory_count: inventory.instances.length,
         instances_declared: usages.length,
         instances_validated: validation?.instances_validated || 0,
         source_component_ids: detectedIds,
@@ -428,9 +418,14 @@ function mergeCheckReports(localReport, rendered, objectCoverage) {
       ...localReport.coverage,
       completeness: passed ? "complete" : localReport.coverage.completeness,
       brand_objects: objectCoverage,
+      design_predicates: {
+        evaluated: [...new Set((rendered?.predicates || []).map((predicate) => predicate.id))].sort(),
+        unverified: [...new Set((rendered?.predicates || []).filter((predicate) => predicate.status === "unverified").map((predicate) => predicate.id))].sort()
+      },
       interface_system: {
         ...(localReport.coverage.interface_system || {}),
         rendered_component_ids: rendered?.interface_system?.rendered_component_ids || [],
+        rendered_instance_sets: rendered?.interface_system?.instance_sets || [],
         rendered_required_roles: rendered?.interface_system?.required_roles || [],
         rendered_status: rendered?.interface_system?.status || "not_verified",
         rendered_ungoverned_instances: rendered?.interface_system?.ungoverned_instances || 0
@@ -482,7 +477,8 @@ async function main() {
   if (args.command === "check") {
     const contract = await loadContract(args, true);
     const files = discoverFiles(args, cwd);
-    const sources = loadSources(files, cwd);
+    const selectedSources = loadSources(files, cwd);
+    const sources = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(selectedSources, cwd) : selectedSources;
     const repository = inspectRepository({ contract, cwd });
     const localReport = checkSources(contract, sources, {
       repository,
@@ -494,7 +490,8 @@ async function main() {
       mergeCheckReports(localReport, rendered, objectCoverage),
       contract,
       sources,
-      loadInterfaceSystemValidation(args)
+      loadInterfaceSystemValidation(args),
+      { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir) }
     );
     const report = {
       ...combinedReport,
@@ -545,7 +542,8 @@ async function main() {
         const sourceAfter = checkSources(contract, finalSources, { repository: finalRepository, requireRepository: true });
         const renderedAfter = args.url ? await runRenderedCheck({ contract, cwd, url: args.url }) : null;
         const objectCoverage = objectCoverageFor(contract, sourceAfter.coverage, loadObjectReport(args, cwd));
-        after = mergeCheckReports(sourceAfter, renderedAfter, objectCoverage);
+        const closure = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(finalSources, cwd) : finalSources;
+        after = attachInterfaceSystemCoverage(mergeCheckReports(sourceAfter, renderedAfter, objectCoverage), contract, closure, loadInterfaceSystemValidation(args), { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir) });
         if (after.coverage.completeness !== "complete" || after.coverage.repository_intelligence !== "ready") {
           blockers.push("post_repair_repository_coverage_incomplete");
         }
@@ -604,7 +602,12 @@ async function main() {
       : (complete ? 0 : 1);
     return;
   }
-  throw new Error("Usage: local-validator.js inspect|check|fix --contract-stdin [--cwd <repository>] [--files <a.tsx,b.css>] [--url <loopback-url>] [--object-report <brand-object-applicability.json>] [--interface-system-validation <temporary-validation.json>] [--finding-ids <ids>|--all-safe] [--apply] [--json]");
+  throw new Error("Usage: local-validator.js inspect|check|fix --contract-stdin [--cwd <repository>] [--files <a.tsx,b.css>] [--url <loopback-url>] [--build-dir <repository-relative-output>] [--object-report <brand-object-applicability.json>] [--interface-system-validation <temporary-validation.json>] [--finding-ids <ids>|--all-safe] [--apply] [--json]");
+}
+
+function currentCommit(cwd) {
+  try { const value = execFileSync("git", ["rev-parse", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); return /^[a-f0-9]{40}$/.test(value) ? value : null; }
+  catch { return null; }
 }
 
 if (require.main === module) {

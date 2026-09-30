@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const path = require("node:path");
+const crypto = require("node:crypto");
+const { evaluateBrandPredicates } = require("./brand-predicates");
 const { createRequire } = require("node:module");
 
 const DEFAULT_VIEWPORTS = [
@@ -125,13 +127,23 @@ function logoRule(contract, logo, fragment) {
 }
 
 async function inspectViewport(page, contract, frontend, viewport) {
+  const findings = [];
   const roles = contract.typography?.roles || [];
   const logos = contract.assets?.logos || [];
   const approvedColors = unique((contract.colors?.tokens || []).map((token) => String(token.value || "").toLowerCase()));
   const iconReferences = contract.references?.iconography || [];
   const expectedIconPrefixes = unique(iconReferences.map((item) => item.library?.prefix));
   const interfaceRoleRequirements = frontend?.generation_enforcement?.applicability?.roles || [];
-  const data = await page.evaluate(({ roleSelectors, logoHints, iconPrefixes, interfaceRoleRequirements }) => {
+  const interfaceTargets = (frontend?.components || []).flatMap((component) => (component.implementation?.targets || [])
+    .filter((target) => target.status === "verified").map((target) => ({ componentId: component.id, targetId: target.id })));
+  const predicates = await page.evaluate(evaluateBrandPredicates, { predicates: frontend.generation_enforcement?.design_guidance?.predicates || [] });
+  for (const predicate of predicates) if (predicate.status === "violated" || predicate.status === "unverified") findings.push(finding({
+    id: `rendered.predicate.${predicate.id}.${viewport.name}`, severity: predicate.status === "unverified" ? "error" : predicate.severity,
+    category: "brand-rule", ruleId: `frontend.predicate.${predicate.id}`, viewport: viewport.name,
+    message: predicate.status === "unverified" ? "An authored automatic rule could not be measured unambiguously." : "An authored automatic Brand Page rule was violated.",
+    suggestion: "Use the exact referenced objects and configured values; do not downgrade an unmeasurable rule into a passing check."
+  }));
+  const data = await page.evaluate(({ roleSelectors, logoHints, iconPrefixes, interfaceRoleRequirements, interfaceTargets }) => {
     const visible = (element) => {
       const style = getComputedStyle(element);
       const rect = element.getBoundingClientRect();
@@ -237,7 +249,8 @@ async function inspectViewport(page, contract, frontend, viewport) {
         const componentId = owner?.getAttribute("data-perture-component-id") || "";
         return {
           componentId,
-          governed: Boolean(componentId && allowedIds.includes(componentId)),
+          governed: Boolean(owner === element && componentId && allowedIds.includes(componentId) &&
+            element.getAttribute("data-perture-instance-id") && interfaceTargets.some((target) => target.componentId === componentId && target.targetId === element.getAttribute("data-perture-implementation-target"))),
           tag: element.tagName.toLowerCase()
         };
       });
@@ -251,6 +264,13 @@ async function inspectViewport(page, contract, frontend, viewport) {
         renderedIds: [...new Set(instances.map((instance) => instance.componentId).filter((id) => allowedIds.includes(id)))]
       };
     });
+    const interfaceRoots = [...document.querySelectorAll("[data-perture-component-id]")].filter(visible).map((element) => ({
+      instanceId: element.getAttribute("data-perture-instance-id") || "",
+      componentId: element.getAttribute("data-perture-component-id") || "",
+      implementationTargetId: element.getAttribute("data-perture-implementation-target") || "",
+      markup: element.outerHTML,
+      rect: rectFor(element)
+    }));
     const colorSamples = allVisible.filter((element) => element.matches("body, main, section, header, footer, button, a, p, h1, h2, h3, input, [role=button]")).slice(0, 180).flatMap((element) => {
       const style = getComputedStyle(element);
       return [style.color, style.backgroundColor, style.borderTopColor, style.fill, style.stroke];
@@ -266,6 +286,7 @@ async function inspectViewport(page, contract, frontend, viewport) {
       svgIcons,
       controls,
       interfaceRoles,
+      interfaceRoots,
       colorSamples,
       horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       expectedIconPrefixes: iconPrefixes
@@ -274,11 +295,11 @@ async function inspectViewport(page, contract, frontend, viewport) {
     roleSelectors: roles.map((role) => ({ role: role.role, selectors: roleCandidates(role.role) })),
     logoHints: logos.flatMap((logo) => [logo.asset_id, logo.file_name, logo.url ? String(logo.url).split("/").pop() : ""]).filter(Boolean).map((item) => String(item).toLowerCase()),
     iconPrefixes: expectedIconPrefixes,
-    interfaceRoleRequirements
+    interfaceRoleRequirements,
+    interfaceTargets
   });
   const interactiveTexts = await page.locator("button, a, [role=button], [aria-hidden=true]").allTextContents();
 
-  const findings = [];
   for (const role of data.interfaceRoles) {
     if (role.ungoverned > 0) findings.push(finding({
       id: `rendered.component.interface_system.${role.role}.${viewport.name}`,
@@ -337,7 +358,7 @@ async function inspectViewport(page, contract, frontend, viewport) {
     message: `The page overflows horizontally by ${Math.round(data.horizontalOverflow)}px.`, suggestion: "Fix responsive widths at this viewport.", evidence: `${viewport.width}x${viewport.height}`
   }));
 
-  const rasterImages = data.images.filter((image) => !/\.svg(?:\?|$)/i.test(image.src));
+  const rasterImages = data.images.filter((image) => !/\.svg(?:[?#]|$)|^data:image\/svg\+xml[;,]/i.test(image.src));
   for (const image of rasterImages) {
     if (image.naturalWidth + 1 < image.rect.width * DEVICE_SCALE_FACTOR || image.naturalHeight + 1 < image.rect.height * DEVICE_SCALE_FACTOR) {
       findings.push(finding({
@@ -431,6 +452,9 @@ async function inspectViewport(page, contract, frontend, viewport) {
     evidence: disallowedColors.slice(0, 12).join(", ")
   }));
 
+  // Bind the actual pixels too: DOM/metrics alone cannot detect an image or
+  // painted-content replacement at the same URL. Pixels never leave this process.
+  const pixelHash = crypto.createHash("sha256").update(await page.screenshot({ fullPage: true, animations: "disabled", caret: "hide" })).digest("hex");
   return {
     findings,
     categories: ["asset", "brand", "color", "component", "iconography", "imagery", "layout", "spacing", "typography"],
@@ -443,6 +467,9 @@ async function inspectViewport(page, contract, frontend, viewport) {
       icon_prefixes_expected: expectedIconPrefixes
     },
     interfaceSystem: {
+      instances: data.interfaceRoots.map(({ instanceId, componentId, implementationTargetId }) => ({ instanceId, componentId, implementationTargetId })),
+      evidence: crypto.createHash("sha256").update(JSON.stringify({ viewport, pixelHash, roots: data.interfaceRoots, roles: data.interfaceRoles, typography: data.roleSamples, colors: data.colorSamples, overflow: data.horizontalOverflow, predicates })).digest("hex"),
+      predicates,
       rendered_component_ids: unique(data.interfaceRoles.flatMap((role) => role.renderedIds)),
       required_roles: unique(data.interfaceRoles.filter((role) => role.total > 0).map((role) => role.role)),
       ungoverned_instances: data.interfaceRoles.reduce((sum, role) => sum + role.ungoverned, 0)
@@ -461,6 +488,9 @@ async function runRenderedCheck({ contract: input, cwd, url, viewports = DEFAULT
   const renderedComponentIds = new Set();
   const requiredRoles = new Set();
   let ungovernedInstances = 0;
+  const evidence = [];
+  const instanceSets = [];
+  const predicateResults = [];
   const runtimeErrors = [];
   try {
     for (const viewport of viewports) {
@@ -475,12 +505,16 @@ async function runRenderedCheck({ contract: input, cwd, url, viewports = DEFAULT
       page.on("pageerror", (error) => runtimeErrors.push(`${viewport.name}: ${String(error.message || error).slice(0, 240)}`));
       await page.goto(targetUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
       await page.evaluate(() => document.fonts.ready);
+      await page.evaluate(() => Promise.all([...document.images].map((image) => image.decode().catch(() => undefined))));
       await page.waitForTimeout(100);
       const result = await inspectViewport(page, contract, frontend, viewport);
       findings.push(...result.findings);
       for (const id of result.interfaceSystem.rendered_component_ids) renderedComponentIds.add(id);
       for (const role of result.interfaceSystem.required_roles) requiredRoles.add(role);
       ungovernedInstances += result.interfaceSystem.ungoverned_instances;
+      evidence.push(result.interfaceSystem.evidence);
+      instanceSets.push(result.interfaceSystem.instances);
+      predicateResults.push(...result.interfaceSystem.predicates);
       results.push({ ...viewport, ...result.metrics });
       await context.close();
     }
@@ -497,9 +531,13 @@ async function runRenderedCheck({ contract: input, cwd, url, viewports = DEFAULT
     status: errors ? "not_verified" : warnings ? "verified_with_warnings" : "verified",
     passed: errors === 0,
     device_scale_factor: DEVICE_SCALE_FACTOR,
+    evidence_hash: crypto.createHash("sha256").update(JSON.stringify(evidence)).digest("hex"),
+    route: `${new URL(targetUrl).pathname}${new URL(targetUrl).search}`,
+    predicates: predicateResults,
     viewports_checked: results,
     categories_evaluated: ["asset", "brand", "color", "component", "iconography", "imagery", "layout", "spacing", "typography"],
     interface_system: {
+      instance_sets: instanceSets,
       rendered_component_ids: [...renderedComponentIds].sort(),
       required_roles: [...requiredRoles].sort(),
       ungoverned_instances: ungovernedInstances,
