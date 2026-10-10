@@ -1,6 +1,6 @@
 ---
 name: perture
-description: Build, review, or safely fix React and Next.js frontend interfaces against a connected Perture brand. Use when the user invokes Perture or explicitly asks for the connected brand to govern frontend work; do not activate for unrelated general design requests.
+description: Build, review, or safely fix React and Next.js frontend interfaces against a connected Perture brand, or edit the owner's Pro Brand Page after an explicit request. Use when the user invokes Perture or explicitly asks for the connected brand; do not activate for unrelated general design requests.
 ---
 
 # Perture Design Agent
@@ -18,6 +18,10 @@ permissions and chosen architecture.
   read-only.
 - **Fix**: the user asks to repair Perture findings. Read
   [references/fix.md](references/fix.md).
+- **Brand Editor**: the Pro owner asks to add or edit Brand Page colors,
+  typography, logos, fonts, illustrations, spacing or rounding. Read
+  [references/brand-editor.md](references/brand-editor.md). This mode does not
+  require a frontend repository or `prepare_ui_change`.
 
 Build includes a scoped post-build review only when `automatic_reviews` is
 enabled in the returned account behavior. Its safe repair loop also requires
@@ -25,11 +29,14 @@ enabled in the returned account behavior. Its safe repair loop also requires
 unrelated cleanup. If the request is ambiguous between Review and Fix, begin
 with Review and obtain authorization before any edit.
 
-For every mode that runs deterministic checks, read
+For Build, Review and Fix modes that run deterministic checks, read
 [references/local-validation.md](references/local-validation.md) before running
 the bundled validator.
 
-## Shared workflow
+## Shared frontend workflow
+
+The workflow below applies to Build, Review and Fix. Brand Editor follows its
+own reference above.
 
 1. Call `list_brands` and resolve the exact requested brand. If more than one
    brand could match, ask the user which one to use. Never ask the user to paste

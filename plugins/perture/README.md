@@ -13,7 +13,7 @@ Claude Code: run `/plugin marketplace add perture/perture-claude-code`, open
 `/plugin`, and install Perture from that marketplace. Authorize the account and
 reload plugins or start a new session. Use the Installed tab to update it.
 
-Version 0.8.6 requires the source-bound
+The current package requires the source-bound
 `interface-evidence.v1` runtime and signed `isv3` validation receipt for
 Interface System approval. Release this package together with a compatible
 backend; publishing the plugin alone cannot upgrade the remote service.
@@ -25,9 +25,17 @@ Installation references:
 https://developers.openai.com/plugins/build/plugins
 https://code.claude.com/docs/en/discover-plugins
 
-The package combines a public Build/Review/Fix workflow skill, local read-only
+The package combines Build/Review/Fix and Pro Brand Editor workflows, local read-only
 repository inspection and source checks, host manifests, public brand assets,
 and the remote Perture MCP locator.
+
+Pro owners can explicitly request Brand Page edits in chat. The MCP can add
+colors and typography, upload and register logos, fonts and illustrations,
+and save spacing or rounding measurements. New OAuth connections request
+Brand Page and settings write access on the consent screen. Existing
+connections must reconnect to obtain those permissions. Every edit requires
+the active brand lock and the owner's request. File uploads are limited to
+8 MiB per call. Saving a draft does not publish a Brand Release.
 
 Validation protocol `1.3` returns structured Error, Warning and Suggestion
 findings across color, exact typography roles, spacing, layout, component,

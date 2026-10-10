@@ -1,7 +1,7 @@
 {
   "name": "perture",
-  "version": "0.8.8",
-  "description": "Build, review and safely fix brand-aware frontend interfaces with Perture.",
+  "version": "0.8.10",
+  "description": "Build and review brand-aware frontend interfaces, and edit Pro Brand Pages with Perture.",
   "author": {
     "name": "Perture",
     "email": "supportperture@gmail.com",
@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Perture",
     "shortDescription": "Keep AI-built frontend UI on brand.",
-    "longDescription": "Use Perture's connected brand contract with local repository intelligence and source checks. Private repository source stays local; authentication and brand authorization remain on Perture infrastructure.",
+    "longDescription": "Use Perture's connected brand contract with local repository intelligence and source checks. Pro owners can explicitly request scoped Brand Page edits for colors, typography, assets, spacing and rounding. Private repository source stays local; authentication and brand authorization remain on Perture infrastructure.",
     "developerName": "Perture",
     "category": "Productivity",
     "capabilities": [

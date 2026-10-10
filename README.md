@@ -3,12 +3,18 @@
 Official public source for the Perture Design Agent package for Codex.
 
 The package combines Perture's authenticated remote MCP server with a local
-Build/Review/Fix skill, repository inspection, deterministic source checks and
-rendered desktop/mobile validation. Version `0.8.6` requires Frontend Contract
+Build/Review/Fix and Pro Brand Editor skills, repository inspection, deterministic source checks and
+rendered desktop/mobile validation. The current package requires Frontend Contract
 protocol `1.3` and fails closed when an approved Interface System component is
 missing, unavailable or bypassed by a hand-built control. Its `interface-evidence.v1`
 protocol and signed `isv3` receipt bind source, component instances, rendered pixels,
 route, commit and build. A changed source, artifact or build invalidates approval.
+
+An owner with an active Pro plan can ask the plugin to add or edit Brand Page
+colors, typography, logos, fonts, illustrations, spacing and rounding. These
+changes require an active brand lock and explicit user request. Reconnect an
+existing Perture account after updating so the consent screen can grant the
+new write scopes; existing read-only tokens do not gain them automatically.
 
 The package contains no credentials, customer data or private brand rules.
 Repository source remains local; protected brand context and authorization
