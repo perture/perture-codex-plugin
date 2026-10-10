@@ -1,6 +1,6 @@
 {
   "name": "perture",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "description": "Build, review and safely fix brand-aware frontend interfaces with Perture.",
   "author": {
     "name": "Perture",
@@ -29,9 +29,9 @@
     "privacyPolicyURL": "https://app.perture.co/privacy",
     "termsOfServiceURL": "https://app.perture.co/terms",
     "brandColor": "#00A6FF",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/logo.svg",
-    "logoDark": "./assets/logo-dark.svg",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "logoDark": "./assets/icon.png",
     "defaultPrompt": [
       "Use Perture for this project."
     ]
