@@ -63,6 +63,12 @@ artifacts. The host must materialize their exact files and the local validator
 checks every SHA-256 before accepting Interface System usage; a hand-built
 component at the expected path cannot pass as the official implementation.
 
+An unmapped structural or content intent may be built from compatible local
+primitives and brand tokens when no approved component applies. This native
+composition remains `not_verified` by the Interface System until the brand
+owner maps and approves it. The fallback cannot bypass approved semantic
+controls or replace a missing official artifact.
+
 The bundled local scripts do not contain credentials, customer data or private
 brand rules. Repository source remains local. Rendered validation uses the
 repository's existing Playwright only on loopback pages. Authentication, brand data, authorization, logs and

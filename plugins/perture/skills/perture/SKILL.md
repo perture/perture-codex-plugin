@@ -58,16 +58,27 @@ own reference above.
    Interface System. When eligible components exist, also confirm that
    `resolve_interface_component`, `get_interface_component_implementation` and
    `validate_interface_system_usage` are callable before changing source.
-   When `interface_system_gate.required` is true, this is a hard build gate:
-   map the requested UI to the eligible approved components before editing,
-   resolve each mapped dotted intent with its actual background/surface and
-   framework, and stop on `unmapped`, `needs_context`, `no_match` or `ambiguous`.
-   If `selection_coverage` is `partial` or `not_configured`, disclose that
-   unmapped variants cannot be chosen automatically or certified by intent.
+   When `interface_system_gate.required` is true, first map the requested UI
+   to eligible approved components and resolve each dotted intent with its
+   actual background/surface and framework. `needs_context`, `no_match` and
+   `ambiguous` must not trigger an automatic substitute: obtain the missing
+   context or Brand Page authoring. For `unmapped`, inspect the returned
+   discovery candidates and the repository's existing primitives. If no
+   approved component is applicable to the requested structural/content role,
+   continue the user-authorized Build as a **native composition** using
+   compatible project components, Perture tokens and existing layout patterns.
+   Record the missing intent and patterns used. This is a new local UI, not an
+   approved Figma component or Brand Page rule. Do not give it an official
+   component ID, import path, usage-manifest entry or validation receipt. Mark
+   its Interface System coverage `not_verified` until the owner maps and
+   approves it. A missing mapping alone must not prevent a useful interface
+   from being built. If `selection_coverage` is `partial` or `not_configured`,
+   disclose which variants cannot be selected automatically.
    Never choose a logo or button by filename or visual guess; for logos provide
    actual background and available space to `get_brand_reference_for_output`.
-   Use their verified implementation targets, and do not recreate parallel
-   controls or containers. Treat `applicability_requirements` as semantic
+   Use approved components' verified implementation targets, and do not
+   recreate parallel controls or containers for their mapped roles. Treat
+   `applicability_requirements` as semantic
    coverage, not a menu: if the output renders a button, input, navigation,
    overlay or feedback role that has approved component IDs, every instance of
    that role must originate from one of those IDs. Using an unrelated approved
@@ -77,14 +88,19 @@ own reference above.
    a file at the declared import path, edit the returned artifact, or treat an
    import path, export name, component ID or usage manifest as implementation
    evidence. If the artifact is unavailable, stop and report the Interface
-   System gap instead of approximating the component. After implementation, create one
+   System gap instead of approximating that approved component. After implementation, create one
    `interface_usage_manifest` entry per used instance. Include that instance's
    exact intent, context and framework whenever Brand Page selection mappings
-   exist. Then call
-   `validate_interface_system_usage`, and keep its exact successful JSON result
-   in a temporary local file for the bundled source check. Zero usages, a stale
-   receipt, or a component declared without its verified import and rendered
-   source usage is an Error, never merely unverified coverage. Native semantic
+   exist. If there are official instances, call
+   `validate_interface_system_usage` and keep its exact successful JSON result
+   in a temporary local file for the bundled source check. A stale receipt or
+   a declared component without verified import and rendered source usage is
+   an Error. If this scope has no applicable approved component and therefore
+   zero official instances, do not fabricate a receipt: pass
+   `--native-composition-intent <unmapped.dotted-intent>` to the local check,
+   finish the build with Interface System coverage `not_verified` and report
+   the gap. This fallback is rejected if source or rendered output contains an
+   applicable official role or official instance. Native semantic
    controls that bypass an applicable approved component are also Errors.
 4. Read `frontend_contract.agent_behavior` and apply exactly these account
    defaults:

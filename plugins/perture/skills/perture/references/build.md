@@ -23,8 +23,16 @@ Use this mode only for a user-authorized frontend implementation or change.
    `applicability_requirements`; an approved component from another role does
    not count. For each explicit Brand Page intent mapping, call
    `resolve_interface_component` with actual background, surface and framework.
-   Use only its exact selected component, variant and target; unresolved or
-   ambiguous results require Brand Page authoring rather than a substitute.
+   Use only its exact selected component, variant and target. For
+   `needs_context`, `no_match` or `ambiguous`, obtain context or Brand Page
+   authoring rather than guessing a substitute. For `unmapped`, inspect
+   catalog hints and the repository: if no approved component is applicable
+   to that structural/content role, compose the requested UI from compatible
+   local primitives, Perture tokens and existing patterns. Record its intent,
+   source patterns and `not_verified` Interface System status. This composition
+   is not a new approved Figma component or a published brand rule. Any button,
+   input, navigation, overlay or feedback role with applicable approved IDs
+   still must use those exact official components.
    Select the official logo with actual background and available space;
    unresolved logo selection is not permission to infer from a file name.
    Use their verified implementation targets; do not substitute a
@@ -64,17 +72,23 @@ an unresolved choice would materially change the result.
 Read `frontend_contract.agent_behavior` before starting this section.
 
 The Interface System gate is mandatory even when automatic review is disabled.
-After implementation, build the complete `interface_usage_manifest`. Record
+After implementation, build the complete `interface_usage_manifest` for every
+official component instance. Record
 the exact intent, context and framework for every mapped instance;
 validation rejects a semantically wrong component or variant even if its
-import is technically valid. The signed receipt is bound to this full manifest.
-Then call
-`validate_interface_system_usage`, save the exact successful result to a
-temporary file, and pass it to the bundled validator with
-`--interface-system-validation`. Remove that temporary file after the check.
-If zero instances are declared or the validator cannot find each declared
+import is technically valid. When there are official instances, the signed
+receipt is bound to the full manifest. Call `validate_interface_system_usage`,
+save its exact successful result to a temporary file, and pass it to the
+bundled validator with `--interface-system-validation`. Remove that temporary
+file after the check. When only a native composition is applicable, do not
+fabricate an official instance or call validation with zero usages. Run the
+local check with `--native-composition-intent <unmapped.dotted-intent>`.
+This path is rejected if source or rendered output contains any applicable
+official semantic role or official instance. Deliver the functional UI with
+Interface System coverage `not_verified`, not a Perture-approved claim. If
+the validator cannot find a declared official
 component through its verified implementation target in source, report an
-Error and do not claim Perture compliance. The same applies when source or DOM
+Error. The same applies when source or DOM
 contains a button, input, navigation, overlay or feedback instance that bypasses
 an approved component assigned to that role, or when a declared component is
 not present on the checked rendered route.

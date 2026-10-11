@@ -241,6 +241,60 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
   const contract = contractInput?.frontend_contract || contractInput;
   const eligibleIds = contract?.generation_enforcement?.required_manifest?.eligible_component_ids || [];
   if (!eligibleIds.length) return report;
+  const nativeIntent = String(options.nativeCompositionIntent || "").trim().toLowerCase();
+  const nativeCompositionRequested = /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,3}$/.test(nativeIntent);
+  const nativeIntentMapped = nativeCompositionRequested && (contract.components || []).some((component) => {
+    if (component?.governance?.status !== "approved") return false;
+    const selections = [component.selection, ...Object.values(component.variantContracts || {}).map((variant) => variant?.selection)];
+    return selections.some((selection) => String(selection?.intent || "").toLowerCase() === nativeIntent);
+  });
+  if (nativeCompositionRequested && !nativeIntentMapped && !validation) {
+    const nativeInventory = inspectInterfaceSources(contract, sources, options.cwd);
+    const renderedRoles = report.coverage?.interface_system?.rendered_required_roles || [];
+    const renderedOfficial = report.coverage?.interface_system?.rendered_component_ids || [];
+    const renderedSets = report.coverage?.interface_system?.rendered_instance_sets || [];
+    if (!nativeInventory.instances.length && !nativeInventory.bypasses.length && !nativeInventory.errors.length &&
+        !renderedRoles.length && !renderedOfficial.length && renderedSets.every((set) => !set.length) &&
+        !report.coverage?.interface_system?.rendered_ungoverned_instances) {
+      const findings = [...report.findings, {
+        ...interfaceSystemFinding(
+          "frontend.component.native_composition_unverified",
+          `No approved Interface System component was used for '${nativeIntent}'; the native composition is not official Figma implementation evidence.`,
+          "Map and approve this intent on the Brand Page before claiming Interface System verification."
+        ),
+        severity: "warning"
+      }];
+      const unverified = new Set(report.coverage?.unverified || []);
+      unverified.add("interface_system_native_composition");
+      unverified.add("interface_system_source_usage");
+      return {
+        ...report,
+        findings,
+        summary: {
+          errors: findings.filter((item) => item.severity === "error").length,
+          warnings: findings.filter((item) => item.severity === "warning").length,
+          suggestions: findings.filter((item) => item.severity === "suggestion").length,
+          findings: findings.length
+        },
+        validation_manifest_for_binding: null,
+        coverage: {
+          ...report.coverage,
+          completeness: "partial",
+          interface_system: {
+            ...(report.coverage?.interface_system || {}),
+            component_ids: [],
+            instances_declared: 0,
+            instances_validated: 0,
+            source_status: "not_verified",
+            status: "native_composition_unverified",
+            native_composition_intent: nativeIntent,
+            validation_receipt: ""
+          },
+          unverified: [...unverified].sort()
+        }
+      };
+    }
+  }
   const findings = [...report.findings];
   const validatedManifest = validation?.validated_manifest;
   const manifestHash = validatedManifest
@@ -316,12 +370,26 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
       "Replace every bypassing native control with a verified component assigned to the same semantic role. An unrelated Interface System component does not satisfy this requirement."
     ));
   }
+  if (nativeIntentMapped) findings.push(interfaceSystemFinding(
+    "frontend.component.native_composition_mapped_intent",
+    `The intent '${nativeIntent}' already has an approved component mapping; native composition cannot bypass it.`,
+    "Resolve the intent with its actual context and use the selected verified implementation, or request Brand Page authoring."
+  ));
+  if (nativeCompositionRequested && !nativeIntentMapped && receiptValidShape) findings.push({
+    ...interfaceSystemFinding(
+      "frontend.component.native_composition_unverified",
+      `Official instances were validated, but the native composition for '${nativeIntent}' is not an approved Figma component.`,
+      "Map and approve this intent on the Brand Page before claiming complete Interface System coverage."
+    ),
+    severity: "warning"
+  });
   const errors = findings.filter((item) => item.severity === "error").length;
   const warnings = findings.filter((item) => item.severity === "warning").length;
   const suggestions = findings.filter((item) => item.severity === "suggestion").length;
   const unverified = new Set(report.coverage?.unverified || []);
   if (sourceVerified) unverified.delete("interface_system_source_usage");
   else unverified.add("interface_system_source_usage");
+  if (nativeCompositionRequested) unverified.add("interface_system_native_composition");
   return {
     ...report,
     passed: report.passed && sourceVerified && bindingMatches && errors === 0,
@@ -329,6 +397,7 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
     summary: { errors, warnings, suggestions, findings: findings.length },
     coverage: {
       ...report.coverage,
+      completeness: nativeCompositionRequested ? "partial" : report.coverage?.completeness,
       interface_system: {
         component_ids: componentIds,
         hash: validation?.interface_system_hash || contract.generation_enforcement.interface_system_hash,
@@ -341,7 +410,8 @@ function attachInterfaceSystemCoverage(report, contractInput, sources, validatio
         instances_validated: validation?.instances_validated || 0,
         source_component_ids: detectedIds,
         source_status: sourceVerified ? "verified" : "not_verified",
-        status: validation?.status || "not_provided",
+        status: nativeCompositionRequested ? "native_composition_unverified" : validation?.status || "not_provided",
+        ...(nativeCompositionRequested ? { native_composition_intent: nativeIntent } : {}),
         validation_receipt: validation?.validation_receipt || ""
       },
       unverified: [...unverified].sort()
@@ -491,7 +561,7 @@ async function main() {
       contract,
       sources,
       loadInterfaceSystemValidation(args),
-      { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir) }
+      { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir), nativeCompositionIntent: args.nativeCompositionIntent }
     );
     const report = {
       ...combinedReport,
@@ -543,7 +613,7 @@ async function main() {
         const renderedAfter = args.url ? await runRenderedCheck({ contract, cwd, url: args.url }) : null;
         const objectCoverage = objectCoverageFor(contract, sourceAfter.coverage, loadObjectReport(args, cwd));
         const closure = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(finalSources, cwd) : finalSources;
-        after = attachInterfaceSystemCoverage(mergeCheckReports(sourceAfter, renderedAfter, objectCoverage), contract, closure, loadInterfaceSystemValidation(args), { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir) });
+        after = attachInterfaceSystemCoverage(mergeCheckReports(sourceAfter, renderedAfter, objectCoverage), contract, closure, loadInterfaceSystemValidation(args), { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir), nativeCompositionIntent: args.nativeCompositionIntent });
         if (after.coverage.completeness !== "complete" || after.coverage.repository_intelligence !== "ready") {
           blockers.push("post_repair_repository_coverage_incomplete");
         }
