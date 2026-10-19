@@ -42,20 +42,34 @@ the bundled validator.
 
 1. Use the connected Perture app to call `list_brands`, select the exact brand
    with `set_active_brand`, and retain its `brand_lock_token`.
-2. Call `get_output_reference` for the requested output type. When a logo is
+2. Before invoking Sites, another generator, or writing output source, call
+   `preflight_brand_output` with the exact output type. Include every capability
+   explicitly requested by the user in `required_capabilities` (for example
+   `illustration`, `photography`, `iconography` or `pattern`). A `blocked` result
+   ends generation: report its short `blocked_reasons` and ask the brand owner
+   to complete those Brand Page fields. Do not invent a missing style, use an
+   unrelated asset, choose a different brand, or try a generic host fallback.
+   The allowed hex list is exact; deriving lighter or darker shades is not
+   authorized. A `ready` result with `visual_authorized: false` permits only
+   an output without a new visual; `illustration_authorized: false` never
+   permits drawing a new illustration or substituting an unrelated asset.
+   This is a deterministic check before model-heavy generation,
+   not a second model review. If this tool is unavailable, stop and report an
+   incompatible Perture MCP version.
+3. On `ready`, call `get_output_reference` for the requested output type. When a logo is
    needed, call `get_brand_reference_for_output` with the actual background and
    available space. Use only the returned official asset and brand guidance.
    For frontend work, call `plan_brand_interface` with every meaningful role:
    controls, containers, typography, layout, navigation, media, logos and icons.
    Fetch and use exact approved component source when a role resolves to one.
-   Derive a missing role from the complete brand contract and mark its source
+   Derive only a role whose brand rules passed preflight and mark its source
    element with `data-perture-intent`. Never use a keyboard glyph as an icon or
    treat composition guide colors as UI palette colors.
-3. Let the external host create and render the result. The read-only Perture
+4. Let the external host create and render the result. The read-only Perture
    app supplies context; it does not render the output. Do not call
    `prepare_ui_change` or request `brands:write` for this mode. Do not ask the
    user to reconnect a working read-only app to obtain a write scope.
-4. If frontend source is available, call `verify_brand_interface_source`
+5. If frontend source is available, call `verify_brand_interface_source`
    with the plan's `contract_version`, all planned roles and the complete generated HTML, JSX/TSX and CSS
    bytes. Fix source findings and rerun the changed code. Report source checks
    separately from runtime and visual fidelity. This fast check uses code.
@@ -78,6 +92,10 @@ output and Brand Editor follow their own workflows above.
 2. Call `set_active_brand` with that brand and retain the returned
    `brand_lock_token`. Pass the selected `brand_id` and this token to every
    subsequent brand-specific MCP call in the task.
+   For Build, call `preflight_brand_output` with the output type and every
+   requested capability before editing source or invoking a generator. Stop
+   on `blocked` or if this tool is unavailable; report the exact missing
+   Brand Page fields. Use only its exact `allowed_color_hexes` in generated UI.
 3. Call `prepare_ui_change` with `mode`, a concrete summary, the known file
    scope, route hint and detected framework. It returns the current Frontend
    Contract, embedded Brand Contract V2, local inspection/check commands and a
