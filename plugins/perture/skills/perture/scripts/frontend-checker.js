@@ -1114,7 +1114,7 @@ function loadSources(files, cwd) {
     if (relative.startsWith("..") || path.isAbsolute(relative)) {
       throw new Error(`Refusing to inspect a file outside the repository: ${file}`);
     }
-    if (!FRONTEND_EXTENSIONS.has(path.extname(absolute).toLowerCase())) continue;
+    if (!FRONTEND_EXTENSIONS.has(path.extname(absolute).toLowerCase()) && !/\.figma-source\.json$/.test(absolute)) continue;
     if (!fs.existsSync(absolute) || !fs.statSync(absolute).isFile()) continue;
     sources.push({ file: relative.replace(/\\/g, "/"), source: fs.readFileSync(absolute, "utf8") });
   }
@@ -1124,5 +1124,6 @@ function loadSources(files, cwd) {
 module.exports = {
   checkSources,
   discoverFiles,
-  loadSources
+  loadSources,
+  maskComments
 };

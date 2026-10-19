@@ -29,13 +29,13 @@ The package combines Build/Review/Fix and Pro Brand Editor workflows, local read
 repository inspection and source checks, host manifests, public brand assets,
 and the remote Perture MCP locator.
 
-Pro owners can explicitly request Brand Page edits in chat. The MCP can add
-colors and typography, upload and register logos, fonts and illustrations,
-and save spacing or rounding measurements. New OAuth connections request
-Brand Page and settings write access on the consent screen. Existing
-connections must reconnect to obtain those permissions. Every edit requires
-the active brand lock and the owner's request. File uploads are limited to
-8 MiB per call. Saving a draft does not publish a Brand Release.
+Pro owners can also request Brand Page edits in chat. The MCP offers scoped
+tools to add colors and typography, upload and register logos, fonts and
+illustrations, and save spacing or rounding measurements. New connections
+request Brand Page and settings write access on the consent screen; existing connections
+must reconnect to obtain it. Each edit requires the active brand lock and the
+owner's explicit request. File uploads are limited to 8 MiB per call. A saved
+draft does not publish a Brand Release.
 
 Validation protocol `1.3` returns structured Error, Warning and Suggestion
 findings across color, exact typography roles, spacing, layout, component,
@@ -63,14 +63,17 @@ artifacts. The host must materialize their exact files and the local validator
 checks every SHA-256 before accepting Interface System usage; a hand-built
 component at the expected path cannot pass as the official implementation.
 
-An unmapped structural or content intent may be built from compatible local
-primitives and brand tokens when no approved component applies. This native
-composition remains `not_verified` by the Interface System until the brand
-owner maps and approves it. The fallback cannot bypass approved semantic
-controls or replace a missing official artifact.
+If a structural or content intent has no applicable approved component, Build
+can compose the requested UI from compatible repository primitives and brand
+tokens. The result remains `not_verified` by the Interface System until its
+owner maps and approves it. This fallback cannot bypass an applicable official
+button, input, navigation, overlay or feedback component, or replace a missing
+official artifact.
 
 The bundled local scripts do not contain credentials, customer data or private
-brand rules. Repository source remains local. Rendered validation uses the
+brand rules. Local repository inspection remains local. Source files explicitly
+submitted to `verify_brand_interface_source` are sent to Perture for code-level
+checking; do not submit unrelated files or secrets. Rendered validation uses the
 repository's existing Playwright only on loopback pages. Authentication, brand data, authorization, logs and
 protected Perture behavior remain on Perture infrastructure and are authorized
 on every remote request.

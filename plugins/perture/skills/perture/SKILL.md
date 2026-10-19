@@ -1,6 +1,6 @@
 ---
 name: perture
-description: Build, review, or safely fix React and Next.js frontend interfaces against a connected Perture brand, or edit the owner's Pro Brand Page after an explicit request. Use when the user invokes Perture or explicitly asks for the connected brand; do not activate for unrelated general design requests.
+description: Use a connected Perture brand for local frontend work, external host outputs, or explicitly requested Brand Page edits.
 ---
 
 # Perture Design Agent
@@ -11,7 +11,12 @@ permissions and chosen architecture.
 
 ## Select one mode
 
-- **Build**: the user asks to create or change frontend UI. Read
+- **External output**: the user asks another host such as Sites, Canva or
+  ChatGPT to create a page, design or document using Perture Brand Page
+  references. Use the read-only reference workflow below. A page created in
+  Sites is an external output even though its result is frontend UI.
+- **Build**: the user asks to create or change frontend UI in a local
+  repository. Read
   [references/build.md](references/build.md).
 - **Review**: the user asks whether existing UI follows the Perture brand. Read
   [references/review.md](references/review.md). Repository access stays
@@ -33,10 +38,39 @@ For Build, Review and Fix modes that run deterministic checks, read
 [references/local-validation.md](references/local-validation.md) before running
 the bundled validator.
 
+## External output workflow
+
+1. Use the connected Perture app to call `list_brands`, select the exact brand
+   with `set_active_brand`, and retain its `brand_lock_token`.
+2. Call `get_output_reference` for the requested output type. When a logo is
+   needed, call `get_brand_reference_for_output` with the actual background and
+   available space. Use only the returned official asset and brand guidance.
+   For frontend work, call `plan_brand_interface` with every meaningful role:
+   controls, containers, typography, layout, navigation, media, logos and icons.
+   Fetch and use exact approved component source when a role resolves to one.
+   Derive a missing role from the complete brand contract and mark its source
+   element with `data-perture-intent`. Never use a keyboard glyph as an icon or
+   treat composition guide colors as UI palette colors.
+3. Let the external host create and render the result. The read-only Perture
+   app supplies context; it does not render the output. Do not call
+   `prepare_ui_change` or request `brands:write` for this mode. Do not ask the
+   user to reconnect a working read-only app to obtain a write scope.
+4. If frontend source is available, call `verify_brand_interface_source`
+   with the plan's `contract_version`, all planned roles and the complete generated HTML, JSX/TSX and CSS
+   bytes. Fix source findings and rerun the changed code. Report source checks
+   separately from runtime and visual fidelity. This fast check uses code.
+   The submitted generated files are sent to the Perture service for this check.
+   Do not include unrelated repository files or secrets.
+   Use `validate_external_output` for other truthful traceability when
+   available. Do not claim local Frontend Contract or Figma Interface System
+   render verification for an external output.
+
+Only submit work to Perture Works when the user separately requests it.
+
 ## Shared frontend workflow
 
-The workflow below applies to Build, Review and Fix. Brand Editor follows its
-own reference above.
+The workflow below applies to local-repository Build, Review and Fix. External
+output and Brand Editor follow their own workflows above.
 
 1. Call `list_brands` and resolve the exact requested brand. If more than one
    brand could match, ask the user which one to use. Never ask the user to paste
@@ -175,7 +209,7 @@ own reference above.
 
 ## Required remote gate
 
-When Perture is expected to govern the current task, do not edit frontend code
+For local-repository Build, Review and Fix, do not edit frontend code
 until `list_brands`, `set_active_brand` and `prepare_ui_change` have all
 succeeded. A discovered brand name or repository asset is not a substitute for
 an active brand lock and a current Frontend Contract.
@@ -213,7 +247,12 @@ and report deterministic code-level status as `not_verified`.
   returned by `get_interface_component_implementation` count as its official
   implementation; wrappers may compose those exports but must not replace or
   restyle their internal visual contract.
-- Treat returned Figma artifacts as immutable outlined SVG. Use only captured
+- Keep canonical Figma artifact files immutable. Native v3 artifacts
+  (`figma-native-structure`) transport the source graph and allow declared
+  `figmaProperties` (text, boolean, variants) and root width/height. Load the
+  exact source fonts; missing fonts or unsupported features fail closed.
+  Source preservation is not proof of pixel fidelity or runtime behavior.
+- Legacy v2 artifacts remain immutable outlined SVG. Use only captured
   variants, states and component properties that resolve to an imported SVG;
   an unknown value is unavailable and must not silently select another
   variant. `label` is an accessibility label, and `className`/`style` may

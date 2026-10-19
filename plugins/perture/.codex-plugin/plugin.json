@@ -1,9 +1,9 @@
 {
   "name": "perture",
-  "version": "0.8.11",
+  "version": "0.8.13",
   "description": "Build and review brand-aware frontend interfaces, and edit Pro Brand Pages with Perture.",
   "author": {
-    "name": "Perture",
+    "name": "Marlan Yokomiso",
     "email": "supportperture@gmail.com",
     "url": "https://app.perture.co/"
   },
@@ -18,14 +18,15 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Perture",
-    "shortDescription": "Keep AI-built frontend UI on brand.",
-    "longDescription": "Use Perture's connected brand contract with local repository intelligence and source checks. Pro owners can explicitly request scoped Brand Page edits for colors, typography, assets, spacing and rounding. Private repository source stays local; authentication and brand authorization remain on Perture infrastructure.",
-    "developerName": "Perture",
-    "category": "Productivity",
+    "shortDescription": "Build on-brand interfaces.",
+    "longDescription": "Perture reads approved brand rules and assets to guide React and Next.js frontend work. Generated source submitted for remote code verification is sent to Perture; unrelated repository files stay local. Pro owners can explicitly request scoped Brand Page edits.",
+    "developerName": "Marlan Yokomiso",
+    "category": "Developer Tools",
     "capabilities": [
       "Interactive"
     ],
     "websiteURL": "https://app.perture.co/",
+    "supportURL": "https://app.perture.co/support",
     "privacyPolicyURL": "https://app.perture.co/privacy",
     "termsOfServiceURL": "https://app.perture.co/terms",
     "brandColor": "#00A6FF",
@@ -33,7 +34,67 @@
     "logo": "./assets/icon.png",
     "logoDark": "./assets/icon.png",
     "defaultPrompt": [
-      "Use Perture for this project."
+      "Show my Perture brands.",
+      "Set Perture Review as my active brand.",
+      "Show the official Perture Review logo."
     ]
+  },
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "List accessible brands for the dedicated review account.",
+              "prompt": "List the Perture brands available to my connected account.",
+              "tools_triggered": "list_brands",
+              "expected_behavior": "List Perture Review as an accessible brand and do not include brands from other accounts."
+            },
+            {
+              "description": "Select the review brand and establish its conversation lock.",
+              "prompt": "Set Perture Review as the active Perture brand for this conversation.",
+              "tools_triggered": "list_brands, set_active_brand",
+              "expected_behavior": "Confirm Perture Review is active; subsequent brand tools must use its brand lock."
+            },
+            {
+              "description": "Read the review brand's approved color and typography context.",
+              "prompt": "For Perture Review, show the approved colors and typography from its brand context.",
+              "tools_triggered": "list_brands, set_active_brand, get_brand_context",
+              "expected_behavior": "Use Perture Review only; include Landing Blue #00A6FF and the RethinkSans type styles without inventing rules."
+            },
+            {
+              "description": "Retrieve the official brand logo through its authorized asset link.",
+              "prompt": "For Perture Review, show me the official logo and its usage restrictions.",
+              "tools_triggered": "list_brands, set_active_brand, get_brand_assets",
+              "expected_behavior": "Return the Perture Review logo via an app.perture.co asset URL and state that the mark must not be recreated, recolored, stretched, or distorted."
+            },
+            {
+              "description": "Get output-specific brand reference without claiming to render an artifact.",
+              "prompt": "For Perture Review, get the official reference for a landing page hero on a light, wide layout. Do not generate the page yet.",
+              "tools_triggered": "list_brands, set_active_brand, get_brand_reference_for_output",
+              "expected_behavior": "Return a landing_page_hero brand reference for Perture Review, distinguish official references from host-side rendering, and do not claim a page was generated."
+            }
+          ],
+          "negative": [
+            {
+              "description": "A general CSS explanation should not invoke brand-specific tools.",
+              "prompt": "Explain the difference between CSS flexbox and grid without consulting any brand system."
+            },
+            {
+              "description": "A generic design request with no connected brand should not invoke Perture.",
+              "prompt": "Suggest three generic homepage ideas for a fictional bakery. Do not use Perture or any existing brand."
+            },
+            {
+              "description": "A simple translation is unrelated to Perture's brand tools.",
+              "prompt": "Translate 'Good morning' into Portuguese."
+            }
+          ]
+        },
+        "commerce": false
+      },
+      "publication": {
+        "release_notes": "Plan complete brand interfaces by semantic role and verify generated source code against approved components, tokens, assets and authored rules. Source checks report remaining visual and runtime uncertainty separately."
+      }
+    }
   }
 }

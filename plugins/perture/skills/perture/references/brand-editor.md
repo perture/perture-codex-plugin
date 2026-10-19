@@ -15,6 +15,8 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
    Use `create_brand_page_item` for a new record or `update_brand_page_item`
    with the exact `item_id` for an existing record. A new color needs a name
    and hex value. Typography uses `style_type` (`title`, `body`, `caption`).
+   Item writes must return `verified: true` and a `snapshot_content_hash`;
+   otherwise the Brand Page did not confirm the edit.
 4. For a logo, font or illustration, use only the exact local file the user
    identified. `upload_brand_file` accepts its simple file name, correct MIME
    type and standard base64 content, up to 8 MiB. It returns a `file_id`; call
@@ -31,13 +33,31 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
    System fields and checks the saved result. If it returns a conflict, list
    guidance again and reconcile the user's intended change with the new
    values before retrying.
-6. If the user asks to change Perture agent behavior or Figma sync settings,
+6. For profile copy, color behavior, grid, layout, voice, output rules or do/don't rules, call
+   `get_brand_page_draft`, then `update_brand_page_draft` with its exact
+   `snapshot_content_hash`. Patch only the requested fields. `voice` accepts a
+   partial object; a supplied list replaces that complete list. `output_rule`
+   edits one output type and preserves other types. `item_guidance` edits one
+   existing color, logo, typography or iconography item by snapshot ID. Keep
+   existing logo selection metadata and color Type metadata in any edited
+   usage rule. For `grids` and `do_dont`, send the complete arrays with every
+   existing ID and field; this tool does not delete rows. Edit name, category
+   or main use case in a separate request so the snapshot and editor projection
+   can both be checked.
+7. For Interface System textual rules, call `list_brand_design_guidance`,
+   then `save_brand_textual_rule` with the exact `content_hash`. Pass an
+   existing rule ID to edit it or omit ID to add one. Re-list after each save
+   to get the next hash before adding another rule.
+8. If the user asks to change Perture agent behavior or Figma sync settings,
    call `get_perture_settings`, then `update_perture_settings` with only the
    requested boolean fields. Confirm the returned values. Billing, credentials,
    email and password are outside this workflow.
-7. Read the affected resource or guidance again and report the saved values.
-   Do not claim that a draft edit published a Brand Release or changed an
-   existing codebase.
+9. Read the affected resource or guidance again and report the saved values.
+   A draft edit does not publish a Brand Release. When the user explicitly wants
+   the saved guidance available to agents, call `publish_brand_release` using
+   the exact current `snapshot_content_hash`; include the published release
+   number when known. Read the output reference again after its verified publication.
+   Do not claim that a draft edit changed an existing codebase.
 
 All editing tools require the current brand lock. The server verifies Pro
 ownership, OAuth scopes and the destination brand on each call.

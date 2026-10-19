@@ -148,12 +148,27 @@ function verificationReportFor(report) {
     return category;
   };
 
+  const coverage = JSON.parse(JSON.stringify(report.coverage || {}));
+  for (const key of ["manifest_hash", "evidence_hash", "hash"]) {
+    if (coverage.interface_system?.[key] === "") delete coverage.interface_system[key];
+  }
+  const overflow = report.findings.length > 500;
+  const findings = overflow ? [...report.findings.slice(0, 499), {
+    id: "local:remote_findings_truncated", rule_id: "frontend.coverage.remote_findings_truncated",
+    severity: "error", category: "brand-rule", kind: "deterministic",
+    message: `${report.findings.length - 499} findings remain in the full local report; the remote report cannot contain more than 500. Verification remains incomplete.`,
+    fixable: false
+  }] : report.findings;
+  if (overflow) {
+    coverage.completeness = "partial";
+    coverage.unverified = [...new Set([...(coverage.unverified || []), "remote_findings_truncated"])];
+  }
   return {
     protocol_version: report.protocol_version,
     contract_version: report.contract_version,
-    passed: report.passed,
+    passed: report.passed && !overflow,
     files_checked: report.files_checked,
-    coverage: report.coverage,
+    coverage,
     rendered: report.rendered ? {
       status: report.rendered.status,
       passed: report.rendered.passed,
@@ -164,7 +179,7 @@ function verificationReportFor(report) {
       route: report.rendered.route,
       summary: report.rendered.summary
     } : null,
-    findings: report.findings.map((finding) => ({
+    findings: findings.map((finding) => ({
       id: finding.id,
       rule_id: finding.rule_id,
       brand_rule_id: finding.brand_rule_id,
@@ -211,7 +226,9 @@ function normalizedSourcePath(value) {
 function sourceMatchesImmutableArtifact(sources, target) {
   const artifact = target?.artifact;
   const files = Array.isArray(artifact?.files) ? artifact.files : [];
-  if (artifact?.kind !== "perture-figma-svg-react" || artifact?.version !== "2" || artifact?.source_fidelity !== "figma-outlined-svg" || !/^[a-f0-9]{64}$/.test(String(artifact?.source_hash || "")) || !Number.isInteger(artifact?.source_variant_count) || artifact.source_variant_count < 1 || !/^[a-f0-9]{64}$/.test(String(artifact?.hash || "")) || !files.length) return false;
+  const legacy = artifact?.kind === "perture-figma-svg-react" && artifact?.version === "2" && artifact?.source_fidelity === "figma-outlined-svg";
+  const native = artifact?.kind === "perture-figma-native-react" && artifact?.version === "3" && artifact?.source_fidelity === "figma-native-structure";
+  if ((!legacy && !native) || !/^[a-f0-9]{64}$/.test(String(artifact?.source_hash || "")) || !Number.isInteger(artifact?.source_variant_count) || artifact.source_variant_count < 1 || !/^[a-f0-9]{64}$/.test(String(artifact?.hash || "")) || !files.length) return false;
   const sourceByPath = new Map(sources.map((item) => [normalizedSourcePath(item?.file), String(item?.source || "")]));
   return files.every((file) => {
     const expected = String(file?.sha256 || "");
@@ -548,7 +565,7 @@ async function main() {
     const contract = await loadContract(args, true);
     const files = discoverFiles(args, cwd);
     const selectedSources = loadSources(files, cwd);
-    const sources = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(selectedSources, cwd) : selectedSources;
+    const sources = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(selectedSources, cwd, contract?.frontend_contract || contract) : selectedSources;
     const repository = inspectRepository({ contract, cwd });
     const localReport = checkSources(contract, sources, {
       repository,
@@ -612,7 +629,7 @@ async function main() {
         const sourceAfter = checkSources(contract, finalSources, { repository: finalRepository, requireRepository: true });
         const renderedAfter = args.url ? await runRenderedCheck({ contract, cwd, url: args.url }) : null;
         const objectCoverage = objectCoverageFor(contract, sourceAfter.coverage, loadObjectReport(args, cwd));
-        const closure = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(finalSources, cwd) : finalSources;
+        const closure = (contract?.frontend_contract || contract)?.generation_enforcement?.required_manifest?.eligible_component_ids?.length ? loadInterfaceSourceClosure(finalSources, cwd, contract?.frontend_contract || contract) : finalSources;
         after = attachInterfaceSystemCoverage(mergeCheckReports(sourceAfter, renderedAfter, objectCoverage), contract, closure, loadInterfaceSystemValidation(args), { cwd, commitSha: currentCommit(cwd), buildHash: hashBuildOutput(cwd, args.buildDir), nativeCompositionIntent: args.nativeCompositionIntent });
         if (after.coverage.completeness !== "complete" || after.coverage.repository_intelligence !== "ready") {
           blockers.push("post_repair_repository_coverage_incomplete");

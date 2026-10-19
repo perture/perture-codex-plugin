@@ -61,6 +61,19 @@ function inspectInterfaceSources(contract, sources, cwd = process.cwd()) {
       if (expression && ts.isNumericLiteral(expression)) return Number(expression.text);
       return undefined;
     };
+    const objectLiteral = (attribute) => {
+      const expression = attribute?.initializer?.expression;
+      if (!expression || !ts.isObjectLiteralExpression(expression)) return null;
+      const result = {};
+      for (const member of expression.properties) {
+        if (!ts.isPropertyAssignment(member) || ts.isComputedPropertyName(member.name)) return null;
+        const name = ts.isStringLiteral(member.name) || ts.isIdentifier(member.name) ? member.name.text : null;
+        const value = literal({ initializer: { expression: member.initializer } });
+        if (name === null || value === undefined || Object.hasOwn(result, name)) return null;
+        result[name] = value;
+      }
+      return result;
+    };
     const visit = (node) => {
       if ((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && bindings.has(node.name.getText(tree))) errors.push(`${file}: an official import is shadowed; provenance is not verified.`);
       if (!officialOwners.has(file) && ts.isCallExpression(node) && /(?:^|\.)(?:createElement|createElementNS|insertAdjacentHTML)$/.test(node.expression.getText(tree))) errors.push(`${file}: imperative element creation requires supported provenance; no verification is inferred.`);
@@ -83,14 +96,25 @@ function inspectInterfaceSources(contract, sources, cwd = process.cwd()) {
           const instanceId = attr("data-perture-instance-id");
           if (attributes.some((attribute) => ts.isJsxSpreadAttribute(attribute))) errors.push(`${file}:${position.line + 1}: spread props prevent deterministic variant/context validation.`);
           for (const name of ["variant", "state", "role"]) if (attributes.some((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(tree) === name) && attr(name) === undefined) errors.push(`${file}:${position.line + 1}: dynamic ${name} cannot be validated as a literal default.`);
+          // The canonical native API supports source-node IDs for previews.
+          // Governance uses the catalog configuration/state, never an unbound ID.
+          if (attributes.some((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(tree) === "variantId")) errors.push(`${file}:${position.line + 1}: use catalog variant/state for verified provenance, not a preview variantId.`);
           if (typeof instanceId !== "string" || !instanceId.trim() || ids.has(instanceId)) errors.push(`${file}:${position.line + 1}: every official instance needs a unique literal data-perture-instance-id.`);
           else ids.add(instanceId);
           const props = {};
+          const nativeAttribute = attributes.find((value) => ts.isJsxAttribute(value) && value.name.getText(tree) === "figmaProperties");
+          const nativeValues = nativeAttribute ? objectLiteral(nativeAttribute) : {};
+          if (nativeAttribute && nativeValues === null) errors.push(`${file}:${position.line + 1}: figmaProperties must be a literal object without spreads or dynamic values.`);
+          const knownNativeKeys = (binding.component.properties || []).flatMap(property => [property.id, property.binding?.figma_property || property.binding?.figmaProperty]).filter(Boolean);
+          if (nativeValues && Object.keys(nativeValues).some(key => !knownNativeKeys.includes(key))) errors.push(`${file}:${position.line + 1}: an unknown native Figma property cannot be validated.`);
           for (const property of binding.component.properties || []) {
             const propName = binding.target.prop_mappings?.[property.id] || binding.target.propMappings?.[property.id] || property.binding?.react_prop || property.binding?.reactProp;
             if (!propName) continue;
-            const exists = attributes.some((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(tree) === propName);
-            const value = exists ? attr(propName) : property.default_value ?? property.defaultValue;
+            const nested = propName.startsWith("figmaProperties.") ? propName.slice("figmaProperties.".length) : null;
+            const rawName = property.binding?.figma_property || property.binding?.figmaProperty;
+            if (nested && nativeValues && nativeValues[nested] !== undefined && rawName && nativeValues[rawName] !== undefined && nativeValues[nested] !== nativeValues[rawName]) errors.push(`${file}:${position.line + 1}: conflicting native property aliases.`);
+            const exists = nested ? nativeValues === null || Object.hasOwn(nativeValues, nested) || rawName && Object.hasOwn(nativeValues, rawName) : attributes.some((attribute) => ts.isJsxAttribute(attribute) && attribute.name.getText(tree) === propName);
+            const value = exists ? nested ? nativeValues?.[nested] ?? nativeValues?.[rawName] : attr(propName) : property.default_value ?? property.defaultValue;
             if (exists && value === undefined) errors.push(`${file}:${position.line + 1}: dynamic prop '${propName}' cannot be validated.`);
             if (value !== undefined) props[property.id] = value;
           }
@@ -125,17 +149,30 @@ function compareInterfaceInventory(inventory, usages) {
   return errors;
 }
 
-function loadInterfaceSourceClosure(sources, cwd) {
+function loadInterfaceSourceClosure(sources, cwd, contract = {}) {
   const root = fs.realpathSync(path.resolve(cwd));
   const ts = createRequire(path.join(root, "package.json"))("typescript");
   const configPath = ts.findConfigFile(root, ts.sys.fileExists);
   const options = configPath ? ts.parseJsonConfigFileContent(ts.readConfigFile(configPath, ts.sys.readFile).config, ts.sys, path.dirname(configPath)).options : { allowJs: true };
   const inventory = new Map(sources.map((item) => [normalizedPath(item.file), item]));
+  // Native raw-source JSON is immutable evidence but not a client import.
+  // Include all declared artifact files, with the same repository boundary.
+  for (const component of contract.components || []) for (const target of component.implementation?.targets || []) for (const declared of target.artifact?.files || []) {
+    const candidate = path.resolve(root, declared.path || "");
+    const relative = path.relative(root, candidate);
+    if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Artifact source escapes the repository; provenance is not verified.");
+    if (!fs.existsSync(candidate)) continue; // Hash validation reports missing files.
+    const absolute = fs.realpathSync(candidate), actual = path.relative(root, absolute);
+    if (actual.startsWith("..") || path.isAbsolute(actual)) throw new Error("Artifact symlink escapes the repository; provenance is not verified.");
+    const file = normalizedPath(actual);
+    if (!inventory.has(file)) inventory.set(file, { file, source: fs.readFileSync(absolute, "utf8") });
+  }
   for (const file of ["package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock", "tsconfig.json", "next.config.js", "next.config.mjs", "next.config.ts", "vite.config.ts", "vite.config.js"]) {
     if (fs.existsSync(path.join(root, file)) && !inventory.has(file)) inventory.set(file, { file, source: fs.readFileSync(path.join(root, file), "utf8") });
   }
   const queue = [...inventory.values()];
-  let bytes = sources.reduce((total, item) => total + Buffer.byteLength(item.source), 0);
+  let bytes = [...inventory.values()].reduce((total, item) => total + Buffer.byteLength(item.source), 0);
+  if (inventory.size >= 2000 || bytes > 50 * 1024 * 1024) throw new Error("Source closure exceeded its safety limit; do not truncate provenance.");
   for (let cursor = 0; cursor < queue.length; cursor++) {
     const item = queue[cursor];
     if (!/\.[cm]?[jt]sx?$/.test(item.file)) continue;
