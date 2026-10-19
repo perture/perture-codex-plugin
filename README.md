@@ -38,6 +38,7 @@ For an existing installation, refresh the marketplace and update Perture in the
 plugin browser. Start a new chat to load the new version. Installation or opening
 a tutorial does not by itself establish an authenticated account connection.
 
-The public Plugins Directory listing is submitted separately through OpenAI's
-review portal. All protected behavior remains on Perture infrastructure and is
-authorized on every request.
+This GitHub marketplace is public and can be installed manually in Codex.
+Listing in the universal ChatGPT Plugins Directory requires a separate OpenAI
+review and is not implied by this repository release. All protected behavior
+remains on Perture infrastructure and is authorized on every request.
