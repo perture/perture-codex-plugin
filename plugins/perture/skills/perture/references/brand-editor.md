@@ -24,6 +24,14 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
    Brand Page section. If a file is larger than 8 MiB or the host cannot read
    it, ask the user to upload it in the Brand Page. Never paste the base64 into
    a chat response or log. File replacement and deletion are unavailable.
+   For an image supplied only as a style or imagery reference, call
+   `create_brand_illustration_reference` with that illustration `file_id`,
+   `name`, and `reference_kind` (`style` or `imagery`). Add a specific
+   `usage_instruction` when the user provides one. The server saves it as
+   reference-only; do not use the image directly in generated work. Before
+   uploading, list existing illustrations and avoid duplicates. Re-list after
+   creation and confirm `reference_only: true` and
+   `use_official_asset_directly: false` for the saved item.
 5. For spacing or rounding, call `list_brand_design_guidance`. Then call
    `save_brand_design_measurement` with `kind: "spacing"` or `"radii"`, the
    exact `expected_content_hash`, and one measurement. Use an existing `id`

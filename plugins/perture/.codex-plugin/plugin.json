@@ -1,6 +1,6 @@
 {
   "name": "perture",
-  "version": "0.8.14",
+  "version": "0.8.15",
   "description": "Build and review brand-aware frontend interfaces, and edit Pro Brand Pages with Perture.",
   "author": {
     "name": "Marlan Yokomiso",
@@ -93,7 +93,7 @@
         "commerce": false
       },
       "publication": {
-        "release_notes": "Run a deterministic brand preflight before generation. Missing output rules, visual language or explicitly requested capabilities block creation early; only exact approved colors are allowed."
+        "release_notes": "Add a discoverable Pro MCP command for style and imagery references. Brand Page reads now state whether illustrations are reference-only or approved for direct use."
       }
     }
   }
