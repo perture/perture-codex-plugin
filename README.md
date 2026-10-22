@@ -11,6 +11,11 @@ can be composed from compatible project primitives and brand tokens, but remain
 unverified by the Interface System. Its `interface-evidence.v1`
 protocol and signed `isv3` receipt bind source, component instances, rendered pixels,
 route, commit and build. A changed source, artifact or build invalidates approval.
+For external site builders, the streamlined flow uses one output-specific brand
+reference, one interface plan and one final source validation. When the host
+cannot render an approved React component, the plan records a framework
+fallback; a copied official logo counts only when its bytes match the signed
+brand asset.
 
 An owner with an active Pro plan can ask the plugin to add or edit Brand Page
 colors, typography, logos, fonts, illustrations, spacing and rounding. These

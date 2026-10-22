@@ -637,8 +637,11 @@ function checkControls(contract, file, source, findings) {
 function authoredGridColumns(contract) {
   const values = [];
   for (const grid of contract.brand_contract?.layout?.grids || []) {
-    const match = String(grid?.columns || "").match(/\d+/);
-    if (match) values.push(Number(match[0]));
+    const description = String(grid?.columns || "");
+    for (const match of description.matchAll(/\b(\d{1,2})\s*(?:(?:equal|unequal|iguais|columns?|colunas?|tracks?|m[oó]dulos?)\b|$)/gi)) {
+      values.push(Number(match[1]));
+    }
+    if (!values.length && /^\s*\d{1,2}\s*$/.test(description)) values.push(Number(description.trim()));
   }
   return uniqueSorted(values.filter((value) => Number.isFinite(value)));
 }

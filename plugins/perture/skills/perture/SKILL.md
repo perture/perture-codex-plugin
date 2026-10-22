@@ -62,12 +62,16 @@ the bundled validator.
    This is a deterministic check before model-heavy generation,
    not a second model review. If this tool is unavailable, stop and report an
    incompatible Perture MCP version.
-3. On `ready`, call `get_output_reference` for the requested output type. When a logo is
-   needed, call `get_brand_reference_for_output` with the actual background and
-   available space. Use only the returned official asset and brand guidance.
-   For frontend work, call `plan_brand_interface` with every meaningful role:
+3. On `ready`, call `get_brand_reference_for_output` once with the actual output
+   type, logo background and available space. It includes the output guidance,
+   complete color list, logo choice and visual references. Use only the returned
+   official assets and brand guidance. Call `get_output_reference` only if a
+   specific field is absent from this package. For frontend work, call
+   `plan_brand_interface` once with every meaningful role:
    controls, containers, typography, layout, navigation, media, logos and icons.
-   Fetch and use exact approved component source when a role resolves to one.
+   Fetch and use exact approved component source when a role resolves to one
+   for the output framework. If an approved component exists only in another
+   framework and the role is a logo, use the resolved official asset unchanged.
    Derive only a role whose brand rules passed preflight and mark its source
    element with `data-perture-intent`. Never use a keyboard glyph as an icon or
    treat composition guide colors as UI palette colors.
@@ -79,18 +83,24 @@ the bundled validator.
    app supplies context; it does not render the output. Do not call
    `prepare_ui_change` or request `brands:write` for this mode. Do not ask the
    user to reconnect a working read-only app to obtain a write scope.
-5. If frontend source is available, call `verify_brand_interface_source`
-   with the plan's `contract_version`, all planned roles and the complete generated HTML, JSX/TSX and CSS
-   bytes. For reference-guided art, include `visual_evidence` with every
+5. For a `landing_page_hero`, call `validate_external_output` once with the
+   plan's `contract_version`, all planned roles, complete generated HTML,
+   JSX/TSX and CSS bytes, and truthful asset traceability. It runs the same
+   deterministic source checker as `verify_brand_interface_source`. Include
+   any downloaded official logo copy in `files` so Perture can compare its
+   bytes to the signed original; for binary files use `content_encoding: base64`
+   in the verification request only. The page must reference that local file.
+   For reference-guided art, include `visual_evidence` with every
    inspected reference ID, the selected generation input IDs and the new image
    URL. Render that image in an `img` or `picture` with its planned media intent.
-   Fix source findings and rerun the changed code. Report source checks
+   Fix blocking source findings and rerun the changed code. Warnings alone do
+   not require another validation call. Report source checks
    separately from runtime and visual fidelity. This fast check uses code.
    The submitted generated files are sent to the Perture service for this check.
    Do not include unrelated repository files or secrets.
-   For `landing_page_hero`, call `validate_external_output` with the complete
-   `brand_interface_source` and its visual evidence before calling it validated.
-   Use the same tool for other truthful traceability when available. Do not claim local Frontend Contract or Figma Interface System
+   Use the same tool for other truthful traceability when available. Call
+   `verify_brand_interface_source` separately only if you need an interim
+   source diagnosis before final output validation. Do not claim local Frontend Contract or Figma Interface System
    render verification for an external output.
 
 Only submit work to Perture Works when the user separately requests it.
