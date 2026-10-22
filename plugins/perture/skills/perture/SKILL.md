@@ -53,6 +53,12 @@ the bundled validator.
    authorized. A `ready` result with `visual_authorized: false` permits only
    an output without a new visual; `illustration_authorized: false` never
    permits drawing a new illustration or substituting an unrelated asset.
+   Follow `visual_execution` when it is present. `official_asset` allows only
+   the mapped image unchanged. `generate_from_references` requires a new
+   original image guided by the returned reference images; those images are
+   inputs, not finished assets. If image generation cannot use the references
+   as visual inputs, stop and report the missing capability. A CSS product
+   mockup does not fulfill a required illustration.
    This is a deterministic check before model-heavy generation,
    not a second model review. If this tool is unavailable, stop and report an
    incompatible Perture MCP version.
@@ -65,18 +71,26 @@ the bundled validator.
    Derive only a role whose brand rules passed preflight and mark its source
    element with `data-perture-intent`. Never use a keyboard glyph as an icon or
    treat composition guide colors as UI palette colors.
+   When `visual_execution.mode` is `generate_from_references`, inspect every
+   returned style reference, use selected references as image generation inputs,
+   and plan a media role for the new image. Do not infer the style solely from
+   reference filenames or text descriptions.
 4. Let the external host create and render the result. The read-only Perture
    app supplies context; it does not render the output. Do not call
    `prepare_ui_change` or request `brands:write` for this mode. Do not ask the
    user to reconnect a working read-only app to obtain a write scope.
 5. If frontend source is available, call `verify_brand_interface_source`
    with the plan's `contract_version`, all planned roles and the complete generated HTML, JSX/TSX and CSS
-   bytes. Fix source findings and rerun the changed code. Report source checks
+   bytes. For reference-guided art, include `visual_evidence` with every
+   inspected reference ID, the selected generation input IDs and the new image
+   URL. Render that image in an `img` or `picture` with its planned media intent.
+   Fix source findings and rerun the changed code. Report source checks
    separately from runtime and visual fidelity. This fast check uses code.
    The submitted generated files are sent to the Perture service for this check.
    Do not include unrelated repository files or secrets.
-   Use `validate_external_output` for other truthful traceability when
-   available. Do not claim local Frontend Contract or Figma Interface System
+   For `landing_page_hero`, call `validate_external_output` with the complete
+   `brand_interface_source` and its visual evidence before calling it validated.
+   Use the same tool for other truthful traceability when available. Do not claim local Frontend Contract or Figma Interface System
    render verification for an external output.
 
 Only submit work to Perture Works when the user separately requests it.
