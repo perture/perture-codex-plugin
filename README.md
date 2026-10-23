@@ -18,8 +18,11 @@ fallback; a copied official logo counts only when its bytes match the signed
 brand asset.
 
 An owner with an active Pro plan can ask the plugin to add or edit Brand Page
-colors, typography, logos, fonts, illustrations, spacing and rounding. These
-changes require an active brand lock and explicit user request. Reconnect an
+colors, typography, logos, fonts, illustrations, spacing, rounding and structured
+iconography. The editor can delete explicitly selected items while preserving
+their uploaded files, reconcile inspected legacy logo rows, and map approved
+component variants to semantic intents. These changes require an active brand
+lock, current version hashes and explicit user request. Reconnect an
 existing Perture account after updating so the consent screen can grant the
 new write scopes; existing read-only tokens do not gain them automatically.
 

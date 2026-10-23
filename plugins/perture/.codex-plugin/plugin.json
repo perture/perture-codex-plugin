@@ -1,6 +1,6 @@
 {
   "name": "perture",
-  "version": "0.8.17",
+  "version": "0.8.18",
   "description": "Build and review brand-aware frontend interfaces, and edit Pro Brand Pages with Perture.",
   "author": {
     "name": "Marlan Yokomiso",
@@ -93,7 +93,7 @@
         "commerce": false
       },
       "publication": {
-        "release_notes": "Streamline external Sites generation to one brand reference, one interface plan and one final validation. Accept a byte-identical local copy of an official logo, handle HTML fallback from React components and parse responsive grid columns correctly."
+        "release_notes": "Complete the Pro Brand Editor workflow with exact-item deletion that preserves files, inspected legacy-logo reconciliation, structured iconography and font usage rules, and explicit intent-to-component mappings. Edits use current version hashes and verified readback; publish the saved draft before agents use the new guidance."
       }
     }
   }

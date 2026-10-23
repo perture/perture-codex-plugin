@@ -31,7 +31,11 @@ and the remote Perture MCP locator.
 
 Pro owners can also request Brand Page edits in chat. The MCP offers scoped
 tools to add colors and typography, upload and register logos, fonts and
-illustrations, and save spacing or rounding measurements. New connections
+illustrations, save spacing or rounding measurements, edit structured
+iconography and font usage rules, and map exact approved component variants
+to semantic intents. Explicit item deletion preserves uploaded files; legacy
+logo reconciliation uses inspected snapshot IDs and exact source files.
+Current version hashes and verified readback guard these edits. New connections
 request Brand Page and settings write access on the consent screen; existing connections
 must reconnect to obtain it. Each edit requires the active brand lock and the
 owner's explicit request. File uploads are limited to 8 MiB per call. A saved
