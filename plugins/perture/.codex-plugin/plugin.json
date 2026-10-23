@@ -1,6 +1,6 @@
 {
   "name": "perture",
-  "version": "0.8.19",
+  "version": "0.8.20",
   "description": "Build and review brand-aware frontend interfaces, and edit Pro Brand Pages with Perture.",
   "author": {
     "name": "Marlan Yokomiso",
@@ -93,7 +93,7 @@
         "commerce": false
       },
       "publication": {
-        "release_notes": "Clarify first-use component mapping from current draft Figma source: verification runs during the save, so an empty verified-target cache does not require preliminary publication. The server compiles only the selected and competing same-intent candidates, checks exact source and unique resolution, then saves only the selection with the current version hash. Existing tools and OAuth scopes are unchanged."
+        "release_notes": "Expand Pro MCP Brand Page authoring across resources, typed specifications, typography metrics, sections, guidance, components, variants and mappings. Add stable file replacement, typed uploads, bounded uploads up to 32 MiB, file inventory and guarded explicit cleanup. Capability discovery reports the live server contract. Source provenance, immutable releases, brand locks, ownership and conflict checks remain enforced."
       }
     }
   }

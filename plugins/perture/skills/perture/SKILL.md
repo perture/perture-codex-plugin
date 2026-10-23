@@ -23,8 +23,8 @@ permissions and chosen architecture.
   read-only.
 - **Fix**: the user asks to repair Perture findings. Read
   [references/fix.md](references/fix.md).
-- **Brand Editor**: the Pro owner asks to add or edit Brand Page colors,
-  typography, logos, fonts, illustrations, spacing or rounding. Read
+- **Brand Editor**: the Pro owner asks to create, edit, delete, reorder or
+  configure Brand Page resources, sections, files, components or rules. Read
   [references/brand-editor.md](references/brand-editor.md). This mode does not
   require a frontend repository or `prepare_ui_change`.
 

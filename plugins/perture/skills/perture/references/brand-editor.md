@@ -6,6 +6,11 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
 1. Call `list_brands`, resolve the requested brand, then call `set_active_brand`.
    Pass its `brand_id` and `brand_lock_token` to every Brand Page tool. Never
    copy another brand's assets into the active one without an explicit request.
+   Call `get_brand_editor_capabilities` once for an editing task. It describes
+   the live server's supported resources, operations, file limits and source
+   boundaries. If a listed operation is absent from this chat's callable tools,
+   report the stale host catalog; do not bypass MCP with a database, direct API
+   or browser edit. This capability read is not part of ordinary output generation.
 2. These tools are available only to the owner of an active Pro account. A new
    OAuth connection requests `brands:write` and `settings:write` on the consent screen. Existing
    connections may need to be removed and connected again. If tools are absent,
@@ -30,9 +35,22 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
    identified. `upload_brand_file` accepts its simple file name, correct MIME
    type and standard base64 content, up to 8 MiB. It returns a `file_id`; call
    `create_brand_page_item` with that ID to register the asset in the relevant
-   Brand Page section. If a file is larger than 8 MiB or the host cannot read
-   it, ask the user to upload it in the Brand Page. Never paste the base64 into
-   a chat response or log. File replacement is unavailable. To delete an
+   Brand Page section. Never paste the base64 into a chat response or log.
+   Icons, patterns, imagery and generic assets also
+   accept typed uploads; read the draft and pass `expected_snapshot_content_hash`
+   for these kinds. Files over 8 MiB use `manage_brand_file_upload`: begin with
+   the declared byte size, SHA-256 and draft hash, append indexed chunks of at
+   most 256 KiB using `index` and `expected_upload_revision`, then complete
+   with the returned upload revision. The assembled limit is
+   32 MiB. If the host cannot read the file or it exceeds 32 MiB, report that
+   exact boundary. Upload sessions belong to this owner and brand and expire after
+   30 minutes. Inspect status after an uncertain response; never start a second
+   upload blindly. Upload completion registers a file, not a Brand Page item.
+   To replace an existing logo, font or illustration file, upload the new file,
+   read its editor item and the current draft, and call `replace_brand_item_file`
+   with `resource`, `item_id`, `file_id` and `expected_snapshot_content_hash`.
+   The item's ID, metadata and snapshot binding remain stable; old source files
+   are retained for published releases. To delete an
    explicitly selected editor item, first read its ID and the draft hash,
    then call `delete_brand_page_item` with `resource`, `item_id` and
    `expected_snapshot_content_hash`. It removes the exact editor/snapshot
@@ -108,3 +126,84 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
 
 All editing tools require the current brand lock. The server verifies Pro
 ownership, OAuth scopes and the destination brand on each call.
+
+## Complete resource editing
+
+Use `list_brand_snapshot_items` before `manage_brand_snapshot_item` for
+`grids`, `do_dont`, `iconography`, `imagery`, `patterns`, `assets`, legacy
+`spacing`/`composition`, `brand_feel`, or typography metrics. The mutation
+requires the exact `expected_snapshot_content_hash` and an explicit `action`:
+`create`, `update`, `delete` or `reorder`. Updates use `item_id` and a scoped
+`item`; ordering supplies every current ID exactly once in `ordered_ids`.
+The existing draft array patch still preserves all rows; use explicit delete
+instead of omitting a row from an array.
+
+Use the resource's typed fields and same-brand `file_id` references. Never
+submit a raw source URL as an editable replacement. Specifications for imagery
+and iconography support their library, metrics, examples and rules. A projected
+font/logo/illustration keeps its editor lifecycle: an `EDITOR_RESOURCE_REQUIRED`
+error provides the exact resource, item IDs and tool to use. Do not delete its
+snapshot projection to bypass an in-use check.
+
+Typography snapshot editing accepts `font_size_px`, `line_height`,
+`letter_spacing_em` and `fallback_family` and projects them into the existing
+canonical typography metadata. Font binding, family and style registration use
+the existing typography editor tools. Do not discard authored usage prose.
+
+## Sections and guidance lifecycle
+
+Read `list_brand_page_sections` before `manage_brand_page_section`.
+`operation` is `show`, `hide`, `reorder`, `create`, `update` or `delete`, with
+the current `expected_content_hash`. Create/update custom content through
+`section: {title, description}`; existing operations identify `section_id`.
+Reorder supplies the full `section_ids` inventory. Hiding preserves content;
+hidden custom sections are archived separately and restored with their IDs,
+metadata and order. Built-in section deletion archives the section. Only
+explicitly deleting a custom section removes that custom record.
+
+Use `manage_brand_design_guidance` with `operation: "delete"` or `"reorder"`,
+`kind: "spacing" | "radii" | "textual_rules"`, and the current guidance hash.
+Delete selects `item_id`; reorder supplies every `item_id` in `item_ids`.
+Deleting a built-in measurement clears its authored value and relation fields
+while retaining the preset ID; deleting a custom measurement or textual rule
+removes that row. Existing save tools remain the add/edit path.
+
+## Interface System authoring
+
+Read `get_brand_interface_draft` for exact component/variant definitions,
+governance, source boundaries and `content_hash`. Optionally scope the read to
+`component_id` or include archived definitions. Use
+`manage_brand_interface_system` with `expected_content_hash` and an `operation`
+object whose `type` is one of:
+
+- `create_component`, `update_component`, `delete_component`,
+  `restore_component`, `reorder_components`;
+- `create_variant`, `update_variant`, `delete_variant`, `reorder_variants`;
+- `set_governance`, `unmap_selection`, `import_source`.
+
+Use exact component IDs and variant names. New authored definitions start as
+drafts. Design approval is separate from verified executable source and must
+be explicitly requested. Changes reset review and executable claims as needed.
+Never self-declare a verified target, immutable artifact or Figma provenance.
+Captured Figma geometry is immutable: update it through a complete source
+import using the normal capture pipeline. User-supplied source imports record
+their origin and do not attest that a live Figma capture occurred.
+
+Existing `save_brand_interface_selection` maps a role to an approved component;
+`unmap_selection` removes an explicitly selected binding. Deletion may detach
+the gallery item while retaining its original source journal. Read the receipt
+and affected draft before claiming that source or coverage changed.
+
+## Explicit physical file cleanup
+
+`list_brand_files` returns bounded metadata and IDs, including older uploads.
+It does not declare files unused. Deleting an item or replacing a file does
+not authorize physical deletion. After a separate explicit cleanup request,
+read the current snapshot hash and call `delete_brand_file` with `file_id`,
+`expected_snapshot_content_hash`, and `confirm_physical_delete: true`.
+The server blocks referenced, foreign or uncertain files, protects every
+immutable release and fences concurrent reference/publication writes. An
+unknown deletion outcome requires reconciliation; do not repeat automatically.
+
+All these operations edit drafts only. Publication remains a separate,
+explicit `publish_brand_release` action with a fresh snapshot hash.
