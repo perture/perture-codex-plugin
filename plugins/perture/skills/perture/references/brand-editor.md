@@ -81,6 +81,14 @@ Brand Page. A connected plugin or an automatic review is not edit permission.
    variant for the requested semantic role; catalog similarity never creates
    a mapping. The tool preserves original code, rejects ambiguity and checks
    the resolver after saving. Re-list after each mapping.
+   If a component's `source_authoring.status` is `verification_on_save`, an
+   empty `verified_targets` cache does not block authoring. Submit the mapping
+   directly: the server compiles an immutable implementation from the current
+   complete Figma source, checks the selected variant and competing candidates
+   for the same intent, and saves only the selection with a version check.
+   Do not publish a preliminary release merely to populate this cache. Missing
+   or unresolved exact source, failed compilation or ambiguous resolution
+   blocks the save; report that failure instead of inventing a replacement.
    For an obsolete legacy logo, compare `draft.legacy_logo_inventory` with
    the editor logo list. `reconcile_brand_logo` requires `snapshot_logo_id`,
    `expected_snapshot_content_hash` and `action: "link"` or `"remove"`.
